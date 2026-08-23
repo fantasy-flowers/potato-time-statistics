@@ -54,6 +54,9 @@
 
 ### Project Facts
 <!-- 架构、依赖、外部系统、为什么这么做。例：- 编译目标 net8.0-windows，原因：宿主 PotatoVN 限定 -->
+- Galgame.PlayedTime 是 Dictionary<string,int>，key="yyyy/M/d"日期字符串，value=分钟数。只有日粒度，无小时粒度。
+- 插件 XAML 不能用 x:Uid 做本地化（宿主不加载插件的 Resources.resw），必须在 code-behind 用 PluginLocalization.GetStringOr / GetLoc 设 Text。
+- WinUI3 插件中用 Microsoft.UI.Xaml.Media / Microsoft.UI.Colors，不要用 Windows.UI.Xaml.Media / Windows.UI.Colors（会 CS0234）。
 
 ### Feedback / Lessons
 <!-- 用户纠正过的做法 + 原因。例：- 不要 mock 数据库测试，原因：上次 mock 通过但生产迁移失败 -->
