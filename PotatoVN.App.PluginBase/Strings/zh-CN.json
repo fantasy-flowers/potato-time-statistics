@@ -1,5 +1,20 @@
 {
   "SettingTitle": "设置标题",
   "SettingDescription": "设置描述",
-  "Login": "登录"
+  "Login": "登录",
+
+  "PlayTimeStats_Title": "游戏时长统计",
+  "PlayTimeStats_Day": "日",
+  "PlayTimeStats_Week": "周",
+  "PlayTimeStats_Month": "月",
+  "PlayTimeStats_TotalPlayTime": "总游玩时长",
+  "PlayTimeStats_TimeDistribution": "时长分布",
+  "PlayTimeStats_GameRanking": "游戏排行",
+  "PlayTimeStats_NoData": "暂无游玩数据，去玩个游戏吧！",
+  "PlayTimeStats_SidebarButton": "游戏时长",
+
+  "PeriodDay": "最近 7 天",
+  "PeriodWeek": "最近 4 周",
+  "PeriodMonth": "最近 6 个月",
+  "FilterBarHint": "已筛选：{0}"
 }

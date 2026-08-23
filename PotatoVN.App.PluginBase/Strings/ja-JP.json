@@ -1,5 +1,20 @@
-{     
+{
   "SettingTitle": "設定",
   "SettingDescription": "設定の説明",
-  "Login": "ログイン"
+  "Login": "ログイン",
+
+  "PlayTimeStats_Title": "プレイ時間統計",
+  "PlayTimeStats_Day": "日",
+  "PlayTimeStats_Week": "週",
+  "PlayTimeStats_Month": "月",
+  "PlayTimeStats_TotalPlayTime": "総プレイ時間",
+  "PlayTimeStats_TimeDistribution": "時間分布",
+  "PlayTimeStats_GameRanking": "ゲームランキング",
+  "PlayTimeStats_NoData": "プレイデータがありません。ゲームを遊びましょう！",
+  "PlayTimeStats_SidebarButton": "プレイ時間",
+
+  "PeriodDay": "過去7日間",
+  "PeriodWeek": "過去4週間",
+  "PeriodMonth": "過去6ヶ月",
+  "FilterBarHint": "フィルター：{0}"
 }

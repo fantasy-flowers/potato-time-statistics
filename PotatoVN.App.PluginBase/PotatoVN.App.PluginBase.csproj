@@ -127,6 +127,7 @@ StampedFiles = stampedFiles.ToArray();
 
   <ItemGroup>
     <None Remove="Controls\ExamplePage.xaml" />
+    <None Remove="Controls\PlayTimeStatsPage.xaml" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.3.0" />
@@ -147,6 +148,9 @@ StampedFiles = stampedFiles.ToArray();
   </ItemGroup>
   <ItemGroup>
     <Page Update="Controls\ExamplePage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Controls\PlayTimeStatsPage.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <None Update="Strings\en-US.json">

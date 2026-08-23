@@ -1,5 +1,20 @@
 {
   "SettingTitle": "Setting Title",
   "SettingDescription": "Setting Description",
-  "Login": "Login"
+  "Login": "Login",
+
+  "PlayTimeStats_Title": "Play Time Stats",
+  "PlayTimeStats_Day": "Day",
+  "PlayTimeStats_Week": "Week",
+  "PlayTimeStats_Month": "Month",
+  "PlayTimeStats_TotalPlayTime": "Total Play Time",
+  "PlayTimeStats_TimeDistribution": "Time Distribution",
+  "PlayTimeStats_GameRanking": "Game Ranking",
+  "PlayTimeStats_NoData": "No play data yet. Go play a game!",
+  "PlayTimeStats_SidebarButton": "Play Time",
+
+  "PeriodDay": "Last 7 days",
+  "PeriodWeek": "Last 4 weeks",
+  "PeriodMonth": "Last 6 months",
+  "FilterBarHint": "Filtered: {0}"
 }

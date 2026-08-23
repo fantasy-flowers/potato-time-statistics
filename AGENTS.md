@@ -57,6 +57,7 @@
 
 ### Feedback / Lessons
 <!-- 用户纠正过的做法 + 原因。例：- 不要 mock 数据库测试，原因：上次 mock 通过但生产迁移失败 -->
+- link_github_repo 返回 has_token:false 不代表不能 push：GitHub App 授权已存在 Windows 凭据管理器（x-access-token），git push 直接可用。连接后先 git remote add origin，再 git push -u origin main 即可。
 
 ### References
 <!-- 外部资源指针。例：- 报错日志查 Grafana: grafana.internal/d/plugin-runtime -->

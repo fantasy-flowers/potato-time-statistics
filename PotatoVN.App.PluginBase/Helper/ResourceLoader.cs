@@ -20,6 +20,7 @@ internal static class ResourceLoader
             Add("Controls/Styles/FontSizes.xaml");
             Add("Controls/Styles/TextBlock.xaml");
             Add("Controls/Styles/Thickness.xaml");
+            Add("Controls/Styles/PlayTimeStats.xaml");
         });
         _loaded = true;
     }
