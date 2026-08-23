@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GalgameManager.Models;
 using Microsoft.UI;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using PotatoVN.App.PluginBase.Helper;
@@ -120,6 +121,7 @@ public partial class PlayTimeStatsViewModel : ObservableObject
         {
             bar.WidthRatio = (double)bar.TotalMinutes / maxMinutes;
             bar.DisplayTime = FormatMinutes(bar.TotalMinutes);
+            SetGridLengths(bar, bar.WidthRatio);
             BarItems.Add(bar);
         }
 
@@ -242,7 +244,8 @@ public partial class PlayTimeStatsViewModel : ObservableObject
         for (var i = 0; i < sorted.Count; i++)
         {
             var gt = sorted[i];
-            RankItems.Add(new GameRankItem
+            var ratio = (double)gt.Minutes / maxMinutes;
+            var item = new GameRankItem
             {
                 Game = gt.Game,
                 Name = gt.Game.Name.Value ?? gt.Game.CnName ?? "Unknown",
@@ -250,10 +253,26 @@ public partial class PlayTimeStatsViewModel : ObservableObject
                 Minutes = gt.Minutes,
                 DisplayTime = FormatMinutes(gt.Minutes),
                 Percentage = Math.Round((double)gt.Minutes / total * 100, 1),
-                WidthRatio = (double)gt.Minutes / maxMinutes,
+                WidthRatio = ratio,
                 BarBrush = new SolidColorBrush(Palette[i % Palette.Length])
-            });
+            };
+            SetGridLengths(item, ratio);
+            RankItems.Add(item);
         }
+    }
+
+    private static void SetGridLengths(BarChartItem item, double ratio)
+    {
+        ratio = Math.Clamp(ratio, 0, 1);
+        item.FillWidth = new GridLength(ratio * 100, GridUnitType.Star);
+        item.EmptyWidth = new GridLength((1 - ratio) * 100, GridUnitType.Star);
+    }
+
+    private static void SetGridLengths(GameRankItem item, double ratio)
+    {
+        ratio = Math.Clamp(ratio, 0, 1);
+        item.FillWidth = new GridLength(ratio * 100, GridUnitType.Star);
+        item.EmptyWidth = new GridLength((1 - ratio) * 100, GridUnitType.Star);
     }
 
     private static readonly string[] DateFormats = { "yyyy/M/d", "yyyy/MM/dd", "yyyy-M-d", "yyyy-MM-dd" };

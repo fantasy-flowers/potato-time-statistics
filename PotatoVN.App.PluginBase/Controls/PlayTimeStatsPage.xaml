@@ -12,7 +12,6 @@
 
     <Page.Resources>
         <converter:ImagePathConverter x:Key="ImagePathConverter" />
-        <converter:MinutesToWidthConverter x:Key="MinutesToWidthConverter" />
 
         <!-- Bar row template for the horizontal bar chart -->
         <DataTemplate x:Key="BarRowTemplate" x:DataType="models:BarChartItem">
@@ -21,36 +20,41 @@
                     Click="BarRow_Click" Tag="{x:Bind}">
                 <Grid ColumnSpacing="12" Padding="0,4">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="72" />
+                        <ColumnDefinition Width="Auto" MinWidth="56" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <!-- Y-axis label -->
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2" MinWidth="56">
                         <TextBlock Text="{x:Bind Label}" FontSize="14" FontWeight="SemiBold"
                                    HorizontalAlignment="Right" />
                         <TextBlock Text="{x:Bind SubLabel}" FontSize="11" Opacity="0.5"
-                                   HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+                                   HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" MaxWidth="80" />
                     </StackPanel>
 
-                    <!-- Bar track + fill -->
+                    <!-- Bar track + fill (star-sized, responsive) -->
                     <Grid Grid.Column="1" VerticalAlignment="Center" Height="28"
                           HorizontalAlignment="Stretch">
                         <Border CornerRadius="4"
                                 Background="{ThemeResource LayerFillColorDefaultBrush}"
                                 Opacity="0.5" />
-                        <Border CornerRadius="4" Height="28" VerticalAlignment="Center"
-                                HorizontalAlignment="Left"
-                                Background="{x:Bind BarBrush}"
-                                Width="{x:Bind WidthRatio, Converter={StaticResource MinutesToWidthConverter}, ConverterParameter=280, Mode=OneWay}" />
+                        <Grid HorizontalAlignment="Stretch">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="{x:Bind FillWidth}" />
+                                <ColumnDefinition Width="{x:Bind EmptyWidth}" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" CornerRadius="4" Height="28"
+                                    VerticalAlignment="Center"
+                                    Background="{x:Bind BarBrush}" />
+                        </Grid>
                     </Grid>
 
                     <!-- Value label -->
                     <TextBlock Grid.Column="2" VerticalAlignment="Center"
                                Text="{x:Bind DisplayTime}" FontSize="13"
                                Foreground="{x:Bind BarBrush}" FontWeight="SemiBold"
-                               MinWidth="56" HorizontalAlignment="Right" />
+                               MinWidth="48" HorizontalAlignment="Right" Margin="4,0,0,0" />
                 </Grid>
             </Button>
         </DataTemplate>
@@ -73,21 +77,26 @@
                     </Border.Background>
                 </Border>
 
-                <!-- Name + percentage bar -->
+                <!-- Name + percentage bar (star-sized, responsive) -->
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
                     <TextBlock Text="{x:Bind Name}" FontSize="14" FontWeight="SemiBold"
                                TextTrimming="CharacterEllipsis" MaxLines="1" />
                     <Grid Height="6" CornerRadius="3" HorizontalAlignment="Stretch"
                           Background="{ThemeResource LayerFillColorDefaultBrush}" Opacity="0.5">
-                        <Border CornerRadius="3" HorizontalAlignment="Left"
-                                Background="{x:Bind BarBrush}"
-                                Width="{x:Bind WidthRatio, Converter={StaticResource MinutesToWidthConverter}, ConverterParameter=200, Mode=OneWay}" />
+                        <Grid HorizontalAlignment="Stretch">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="{x:Bind FillWidth}" />
+                                <ColumnDefinition Width="{x:Bind EmptyWidth}" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" CornerRadius="3"
+                                    Background="{x:Bind BarBrush}" />
+                        </Grid>
                     </Grid>
                 </StackPanel>
 
                 <!-- Time + percentage -->
                 <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2"
-                            HorizontalAlignment="Right">
+                            HorizontalAlignment="Right" MinWidth="56">
                     <TextBlock Text="{x:Bind DisplayTime}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{x:Bind BarBrush}" HorizontalAlignment="Right" />
                     <TextBlock Text="{x:Bind Percentage}" FontSize="11" Opacity="0.6"
@@ -98,8 +107,10 @@
     </Page.Resources>
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <ScrollViewer Padding="40,24,40,24" VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="16" MaxWidth="900" HorizontalAlignment="Stretch">
+        <ScrollViewer Padding="24,24,24,24" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      HorizontalContentAlignment="Stretch">
+            <StackPanel Spacing="16" HorizontalAlignment="Stretch">
 
                 <!-- Header: title + period tabs -->
                 <Grid ColumnSpacing="0">

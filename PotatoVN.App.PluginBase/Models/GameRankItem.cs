@@ -1,4 +1,5 @@
 using GalgameManager.Models;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 
 namespace PotatoVN.App.PluginBase.Models;
@@ -27,6 +28,12 @@ public class GameRankItem
 
     /// <summary>Width ratio for the percentage bar (0–1).</summary>
     public double WidthRatio { get; set; }
+
+    /// <summary>Star-sized GridLength for the filled portion of the percentage bar.</summary>
+    public GridLength FillWidth { get; set; } = new(0, GridUnitType.Star);
+
+    /// <summary>Star-sized GridLength for the empty portion of the percentage bar.</summary>
+    public GridLength EmptyWidth { get; set; } = new(1, GridUnitType.Star);
 
     /// <summary>Brush for the percentage bar.</summary>
     public SolidColorBrush BarBrush { get; set; } = new(Microsoft.UI.Colors.DodgerBlue);
