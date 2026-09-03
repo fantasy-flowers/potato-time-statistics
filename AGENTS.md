@@ -70,6 +70,12 @@
 - 踩坑：`Enumerable.Range(start, count)` 生成的是 start 起的**递增**序列——GetRecentDays 曾把 `Range(count-1, count)` 当倒序偏移 {6..0} 用，实际得到 {6..12}，近7日窗口整体前移 6 天且漏掉选中日；倒序偏移要自己算 `i - (count-1)`（2026-09 修复）
 - 踩坑：Path 画环形扇区 = 外弧(ArcSegment 顺时针) + 径向 LineSegment + 内弧(逆时针) + IsClosed；若外圈误写成直线弦、径向连接误写成弧线，扇区会变成上下两片「月牙」（DonutChart 2026-09 修复）。样式已对齐原型 ECharts 饼图：radius 48%/72%、padAngle 2° + 卡片底色描边、占比 ≥5% 外部标签带引导线
 - 踩坑：单条 ArcSegment 不允许起点=终点——360° 满圆时两点重合属退化弧，整段不渲染（100% 单扇区整环消失，2026-09 二修）；弧必须按 ≤180° 分段绘制，IsLargeArc 恒 false
+- 布局耦合：PlaytimeStatsView 日维度卡片 chartHost 固定 Height=430，环形图(Star 行)+图例(Auto 行)同卡分高，游戏多时图例行数暴涨把环形图挤小（环半径=min(w,h)/2，高度受限直接变小，2026-09）；优化方向：图例限高+内部滚动 / 图例与扇区都做 Top N+其他聚合 / 图表图例左右并排
+
+- 本机宿主为 PotatoVN 微软商店版：数据在 `%LOCALAPPDATA%\Packages\37126GoldenPotato137.PotatoVN_8vtbc0gbd4jey\LocalState`；本地库是 **LiteDB**（pvn_data.db，非 SQLite，Galgame 以 BSON 存）；插件目录 `LocalState\Plugins`（一插件一文件夹，DLL 为 A+32hex 哈希名）；本机系统时区为 UTC+8
+- 宿主自带手动编辑游玩时长入口：游戏详情页点击"游玩时长"数字 → `EditPlayTimeDialog`，按 `yyyy/M/d` 逐日添加分钟并自动重算 TotalPlayTime（官方安全注入方式）
+- 云端 API（官方 `https://api.potatovn.net/`）：`POST /user/session`{userName,password}→JWT token；`GET /galgame?timestamp=0&pageSize=N` 分页拉全库（GalgameDto 含 totalPlayTime/playTime）；`PATCH /galgame` 的 PlayTime 整组覆盖且必须同时传 TotalPlayTime（服务器不重算）；`PATCH /galgame/{id}/playlog` 累加；PlayLogDto={dateTimeStamp:本地零点UTC秒, minute}；PlayType: 0None/1Playing/2Played/3Shelved/4Abandoned/5Wishlisted
+- `tools/` 已就位：`query_cloud_library.ps1`（只读拉云库）、`upload_playtime.ps1`（确定性随机生成最近180天游玩时长并 PATCH 上传，-GenerateOnly 只生成不登录、默认跳过已有真实时长游戏、-Force 覆盖、-SetPlayType 顺设状态）；坑：.ps1 中文注释必须 UTF-8 BOM，否则 PS5.1 按 ANSI 误读报语法错
 
 ### Feedback / Lessons
 <!-- 用户纠正过的做法 + 原因。例：- 不要 mock 数据库测试，原因：上次 mock 通过但生产迁移失败 -->
