@@ -66,17 +66,29 @@ public sealed class StatsPage : Page
         _gameStatsView.Margin = new Thickness(0, 20, 0, 0);
         _gameStatsView.Visibility = Visibility.Collapsed;
 
-        // 容器本身撑满视口；内容列用 Star+MaxWidth=1400 封顶：
-        // 若直接给容器设 MaxWidth+Stretch，窗口超过 1400 后元素被截断时按"居中"排列，
-        // 导致窗口越大整体内容越往右漂。改为列级 MaxWidth 后内容靠左封顶，超宽部分留在右侧。
+        // 容器撑满视口，自身不设 MaxWidth（ScrollViewer 直接子元素设 MaxWidth+Stretch
+        // 会有截断后按"居中"排列、越宽越往右漂的坑）；内容列用 Star+MaxWidth=1400 封顶。
+        // 居中：窗口超过 1400 时给容器加左右对称 Padding，等价于原型的
+        // .container { max-width:1400px; margin:0 auto }。
+        // 不用三列 Star 对称留白——Star 按比例分宽，窗口不足 1400 时内容列会被两侧挤窄；
+        // 也不用 MaxWidth+Center——图表等拉伸元素的 desired 宽不可靠，会缩成自然宽。
+        const double contentMaxWidth = 1400;
         var container = new Grid();
         container.ColumnDefinitions.Add(new ColumnDefinition
         {
             Width = new GridLength(1, GridUnitType.Star),
-            MaxWidth = 1400,
+            MaxWidth = contentMaxWidth,
         });
         container.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         container.Children.Add(body);
+        // 挂在 container（而非窗口）上：它的实际宽度就是滚动视口宽，垂直滚动条
+        // 出现/消失引起的变化也会触发重算；Padding 不改变容器自身尺寸，无死循环。
+        container.SizeChanged += (_, e) =>
+        {
+            var extra = e.NewSize.Width - contentMaxWidth;
+            var side = extra > 0 ? extra / 2 : 0;
+            container.Padding = new Thickness(side, 0, side, 0);
+        };
 
         var scrollViewer = new ScrollViewer
         {

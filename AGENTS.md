@@ -51,6 +51,7 @@
 
 ### User Preferences
 <!-- 用户偏好与约定。例：- 提交信息一律使用中文 -->
+- 插件页面内容超宽（>1400）时要整体居中（对齐 HTML 原型 `.container { max-width:1400px; margin:0 auto }`），不要靠左留右侧（2026-09 用户明确要求）
 
 ### Project Facts
 <!-- 架构、依赖、外部系统、为什么这么做。例：- 编译目标 net8.0-windows，原因：宿主 PotatoVN 限定 -->
@@ -64,8 +65,9 @@
 - 脚手架依赖 AngleSharp 未被插件代码使用且带已知漏洞（NU1902），已从 csproj 移除
 - 踩坑：COMException 0x800F1000「没有检测到已安装的组件」是 XAML 错误码与 SPAPI 撞号，真实含义 = "Element is already the child of another element"。共享 UIElement（readonly 字段的 Canvas/Grid/View）重复挂载到新父级前必须先从旧父级移除；`Children.Clear()`/`Content=null` 只解除直接子级，孙级仍保留父级引用（BarChart 用 _plotGrid 字段复用、StatsPage 加 DetachFromParent 修复，2026-09）
 - 构建后置步骤用裸 `powershell` 命令，Git Bash 下 9009 失败；可用 System32 bsdtar（`tar -a -cf xxx.zip`）替代 Compress-Archive 打包 .pvnplugin.zip
-- 踩坑：ScrollViewer 的直接子元素设 MaxWidth+HorizontalAlignment.Stretch，窗口宽度超过 MaxWidth 后内容被截断时按"居中"排列 → 窗口越大整体内容越往右漂。正确做法：外层 Grid 撑满视口（不设 MaxWidth）+ 内容列 `ColumnDefinition { Star, MaxWidth }` 封顶，内容靠左、超宽留右侧（2026-09 StatsPage 修复）
+- 踩坑：ScrollViewer 的直接子元素设 MaxWidth+HorizontalAlignment.Stretch，窗口宽度超过 MaxWidth 后内容被截断时按"居中"排列 → 窗口越大整体内容越往右漂。正确做法：外层 Grid 撑满视口（不设 MaxWidth）+ 内容列 `ColumnDefinition { Star, MaxWidth }` 封顶；超宽居中用 container.SizeChanged 加左右对称 Padding（等价 CSS margin:0 auto，2026-09 StatsPage）。不能用三列 Star 对称留白（窗口不足封顶宽时内容列被挤窄），也不能 MaxWidth+Center（图表等拉伸元素 desired 宽不可靠会缩成自然宽）
 - 踩坑：Grid 同一 cell 内多个子元素不会自动排布——BarChart X 轴标签曾全部堆在绘图区左边缘，需 `Margin.Left = slotWidth * i` 偏移到对应柱形槽位；进度条类填充宽度不要把 0-100 百分数当像素值，用 `GridLength(percent, Star)` 星列按比例（GameStatsView trackGrid 模式）
+- 踩坑：`Enumerable.Range(start, count)` 生成的是 start 起的**递增**序列——GetRecentDays 曾把 `Range(count-1, count)` 当倒序偏移 {6..0} 用，实际得到 {6..12}，近7日窗口整体前移 6 天且漏掉选中日；倒序偏移要自己算 `i - (count-1)`（2026-09 修复）
 
 ### Feedback / Lessons
 <!-- 用户纠正过的做法 + 原因。例：- 不要 mock 数据库测试，原因：上次 mock 通过但生产迁移失败 -->

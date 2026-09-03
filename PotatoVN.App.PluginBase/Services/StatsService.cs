@@ -105,9 +105,9 @@ public static class StatsService
         return d.AddDays(-diff);
     }
 
-    /// <summary>以 selectedDate 为终点的近 N 天（升序）</summary>
+    /// <summary>以 selectedDate 为终点的近 N 天（升序）。注意 Enumerable.Range(start,count) 是递增序列，不能直接当倒序偏移用</summary>
     public static List<DateTime> GetRecentDays(DateTime selectedDate, int count = 7)
-        => Enumerable.Range(count - 1, count).Select(i => selectedDate.Date.AddDays(-i)).ToList();
+        => Enumerable.Range(0, count).Select(i => selectedDate.Date.AddDays(i - (count - 1))).ToList();
 
     /// <summary>选中日期所在周的 7 天（周一开头）</summary>
     public static List<DateTime> GetWeekDays(DateTime selectedDate)
