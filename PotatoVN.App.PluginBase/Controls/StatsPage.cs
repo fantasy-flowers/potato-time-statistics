@@ -56,13 +56,26 @@ public sealed class StatsPage : Page
 
         var body = new StackPanel { Spacing = 0 };
         body.Children.Add(topBar);
+        // 共享视图重新挂载前必须先从旧父级移除，否则抛 COMException 0x800F1000
+        // （Element is already the child of another element）
+        DetachFromParent(_playtimeView);
+        DetachFromParent(_gameStatsView);
         body.Children.Add(_playtimeView);
         _playtimeView.Margin = new Thickness(0, 20, 0, 0);
         body.Children.Add(_gameStatsView);
         _gameStatsView.Margin = new Thickness(0, 20, 0, 0);
         _gameStatsView.Visibility = Visibility.Collapsed;
 
-        var container = new Grid { MaxWidth = 1400, HorizontalAlignment = HorizontalAlignment.Stretch };
+        // 容器本身撑满视口；内容列用 Star+MaxWidth=1400 封顶：
+        // 若直接给容器设 MaxWidth+Stretch，窗口超过 1400 后元素被截断时按"居中"排列，
+        // 导致窗口越大整体内容越往右漂。改为列级 MaxWidth 后内容靠左封顶，超宽部分留在右侧。
+        var container = new Grid();
+        container.ColumnDefinitions.Add(new ColumnDefinition
+        {
+            Width = new GridLength(1, GridUnitType.Star),
+            MaxWidth = 1400,
+        });
+        container.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         container.Children.Add(body);
 
         var scrollViewer = new ScrollViewer
@@ -74,6 +87,23 @@ public sealed class StatsPage : Page
         };
 
         Content = scrollViewer;
+    }
+
+    /// <summary>把元素从当前逻辑父级上摘下来（Content=null 只断开根节点，孙级仍保留父级引用）</summary>
+    private static void DetachFromParent(FrameworkElement element)
+    {
+        switch (element.Parent)
+        {
+            case Panel panel:
+                panel.Children.Remove(element);
+                break;
+            case Border border:
+                border.Child = null;
+                break;
+            case ContentControl contentControl:
+                contentControl.Content = null;
+                break;
+        }
     }
 
     private FrameworkElement BuildModuleSwitch(StatsPalette palette)

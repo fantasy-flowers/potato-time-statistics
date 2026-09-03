@@ -1081,16 +1081,20 @@ public sealed class PlaytimeStatsView : Grid
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 0, 10, 0),
         };
-        barTrack.Child = new Border
+        // 填充宽度用百分比星列实现，随轨道宽度伸缩（旧实现把 0-100 的百分数当像素值用了）
+        var fillPercent = Math.Clamp(barPercent, 0, 100);
+        var fillHost = new Grid();
+        fillHost.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(fillPercent, GridUnitType.Star) });
+        fillHost.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100 - fillPercent, GridUnitType.Star) });
+        fillHost.Children.Add(new Border
         {
             Background = isLast
                 ? new SolidColorBrush(gameColor ?? palette.Accent)
                 : palette.AccentBrush,
             CornerRadius = new CornerRadius(3),
             Height = 6,
-            Width = Math.Max(0, barPercent),
-            HorizontalAlignment = HorizontalAlignment.Left,
-        };
+        });
+        barTrack.Child = fillHost;
         row.Children.Add(barTrack);
         Grid.SetColumn(barTrack, 1);
 

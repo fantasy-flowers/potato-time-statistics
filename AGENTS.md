@@ -62,6 +62,10 @@
 - 宿主以 `Activator.CreateInstance(pageType)` 无参构造插件 Page，且 `NavigateTo(Type,title,parameter)` 的 parameter 不会传给页面 → 插件页面必须保留无参 ctor，共享数据走 `Plugin.CurrentData`
 - 统计图表采用 WinUI 原生自绘（Path 环形图/Rectangle 柱形图），零图表库依赖；踩坑：WinUI 3 无 UniformGrid 控件、Thickness 无 2 参构造、Color 在 Windows.UI、FontWeight 在 Windows.UI.Text、FlyoutPlacementMode 在 Microsoft.UI.Xaml.Controls.Primitives
 - 脚手架依赖 AngleSharp 未被插件代码使用且带已知漏洞（NU1902），已从 csproj 移除
+- 踩坑：COMException 0x800F1000「没有检测到已安装的组件」是 XAML 错误码与 SPAPI 撞号，真实含义 = "Element is already the child of another element"。共享 UIElement（readonly 字段的 Canvas/Grid/View）重复挂载到新父级前必须先从旧父级移除；`Children.Clear()`/`Content=null` 只解除直接子级，孙级仍保留父级引用（BarChart 用 _plotGrid 字段复用、StatsPage 加 DetachFromParent 修复，2026-09）
+- 构建后置步骤用裸 `powershell` 命令，Git Bash 下 9009 失败；可用 System32 bsdtar（`tar -a -cf xxx.zip`）替代 Compress-Archive 打包 .pvnplugin.zip
+- 踩坑：ScrollViewer 的直接子元素设 MaxWidth+HorizontalAlignment.Stretch，窗口宽度超过 MaxWidth 后内容被截断时按"居中"排列 → 窗口越大整体内容越往右漂。正确做法：外层 Grid 撑满视口（不设 MaxWidth）+ 内容列 `ColumnDefinition { Star, MaxWidth }` 封顶，内容靠左、超宽留右侧（2026-09 StatsPage 修复）
+- 踩坑：Grid 同一 cell 内多个子元素不会自动排布——BarChart X 轴标签曾全部堆在绘图区左边缘，需 `Margin.Left = slotWidth * i` 偏移到对应柱形槽位；进度条类填充宽度不要把 0-100 百分数当像素值，用 `GridLength(percent, Star)` 星列按比例（GameStatsView trackGrid 模式）
 
 ### Feedback / Lessons
 <!-- 用户纠正过的做法 + 原因。例：- 不要 mock 数据库测试，原因：上次 mock 通过但生产迁移失败 -->

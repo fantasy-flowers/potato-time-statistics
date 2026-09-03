@@ -31,8 +31,21 @@ internal sealed class BarChart : Grid
     private StatsPalette _palette = StatsTheme.For(ElementTheme.Dark);
     private readonly Canvas _plotArea = new();
 
+    /// <summary>
+    /// 绘图区宿主 Grid，与 <see cref="_plotArea"/> 一样只创建一次。
+    /// 踩坑：XAML 是树，同一元素不能有两个父级；若每次 Render 都 new 一个 Grid 再
+    /// Children.Add(_plotArea)，旧 Grid 仍持有 _plotArea，会抛 COMException 0x800F1000
+    /// （"Element is already the child of another element"，错误文案与 SETUPAPI 撞号）。
+    /// </summary>
+    private readonly Grid _plotGrid = new()
+    {
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+        VerticalAlignment = VerticalAlignment.Stretch,
+    };
+
     public BarChart()
     {
+        _plotGrid.Children.Add(_plotArea);
         SizeChanged += (_, _) => Render();
     }
 
@@ -186,7 +199,8 @@ internal sealed class BarChart : Grid
                     Foreground = _palette.TextMutedBrush,
                     TextAlignment = TextAlignment.Center,
                     TextTrimming = TextTrimming.CharacterEllipsis,
-                    Margin = new Thickness(0, 0, 0, 2),
+                    // 左偏移到对应柱形的槽位，否则所有标签都堆在绘图区左边缘
+                    Margin = new Thickness(slotWidth * i, 0, 0, 2),
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Bottom,
                     Width = slotWidth,
@@ -198,11 +212,10 @@ internal sealed class BarChart : Grid
             }
         }
 
-        var plotGrid = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-        plotGrid.Children.Add(_plotArea);
-        Children.Add(plotGrid);
-        Grid.SetColumn(plotGrid, 1);
-        Grid.SetRow(plotGrid, 0);
+        // 复用 _plotGrid（父级已被上方 Children.Clear() 解除），避免共享元素重复挂载
+        Children.Add(_plotGrid);
+        Grid.SetColumn(_plotGrid, 1);
+        Grid.SetRow(_plotGrid, 0);
     }
 
     private static string FormatAxisValue(double hours)
