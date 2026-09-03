@@ -58,6 +58,10 @@
 - `sample/` 界面原型：`_html_full.html` = 双模块 HTML 原型（游戏时长统计 + 游戏统计，顶部 module-switch 切换，深色 #1b2838 主题）；原始单模块为 `游戏时长统计插件界面（含日期选择器） (1).html`
 - 踩坑：勿把 web.fetch/Read 长内容持久化输出直接存成 .html（每行带"行号<TAB>"前缀，浏览器打不开）；`_html_full.html` 曾因此损坏，已用原始 HTML 重建
 - 游戏统计模块数据全部来自宿主 `GetAllGames()` 快照（PlayType/TotalPlayTime/PlayedTime 日期→分钟），无需额外持久化；热力图直接聚合 PlayedTime
+- `Galgame.PlayedTime` 键格式为 `yyyy/M/d`（ToStringDefault），值为分钟；插件只引用 WinApp.Base（无 GalgameManager.Core），日期解析需自带（StatsService 支持 yyyy/M/d、yyyy-MM-dd 等）
+- 宿主以 `Activator.CreateInstance(pageType)` 无参构造插件 Page，且 `NavigateTo(Type,title,parameter)` 的 parameter 不会传给页面 → 插件页面必须保留无参 ctor，共享数据走 `Plugin.CurrentData`
+- 统计图表采用 WinUI 原生自绘（Path 环形图/Rectangle 柱形图），零图表库依赖；踩坑：WinUI 3 无 UniformGrid 控件、Thickness 无 2 参构造、Color 在 Windows.UI、FontWeight 在 Windows.UI.Text、FlyoutPlacementMode 在 Microsoft.UI.Xaml.Controls.Primitives
+- 脚手架依赖 AngleSharp 未被插件代码使用且带已知漏洞（NU1902），已从 csproj 移除
 
 ### Feedback / Lessons
 <!-- 用户纠正过的做法 + 原因。例：- 不要 mock 数据库测试，原因：上次 mock 通过但生产迁移失败 -->
