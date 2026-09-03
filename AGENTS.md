@@ -54,6 +54,7 @@
 
 ### Project Facts
 <!-- 架构、依赖、外部系统、为什么这么做。例：- 编译目标 net8.0-windows，原因：宿主 PotatoVN 限定 -->
+- 构建说明位于仓库根目录 BUILD.md，涵盖桌面客户端(MSIX)和后端服务(Docker/dotnet publish)两种构建方式
 
 ### Feedback / Lessons
 <!-- 用户纠正过的做法 + 原因。例：- 不要 mock 数据库测试，原因：上次 mock 通过但生产迁移失败 -->
