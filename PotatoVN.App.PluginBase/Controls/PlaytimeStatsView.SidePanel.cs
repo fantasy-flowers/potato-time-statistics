@@ -16,14 +16,15 @@ using Windows.UI;
 namespace PotatoVN.App.PluginBase.Controls;
 
 /// <summary>
-/// 侧栏：日维度显示近7日趋势，周/月维度显示游戏时长排行（含排序、柱形筛选联动）。
+/// 侧栏：周/月维度显示游戏时长排行（含排序、柱形筛选联动）。
+/// 日维度的近7日趋势已移出侧栏，见 <see cref="BuildDayTrendCard"/>（整行卡片）。
 /// </summary>
 public sealed partial class PlaytimeStatsView
 {
-    #region 侧栏（排行 / 趋势）
+    #region 侧栏（排行）
 
     private FrameworkElement BuildSideCard(StatsPalette palette)
-        => _period == StatsPeriod.Day ? BuildTrendPanel(palette) : BuildRankPanel(palette);
+        => BuildRankPanel(palette);
 
     private FrameworkElement BuildRankPanel(StatsPalette palette)
     {
@@ -173,7 +174,11 @@ public sealed partial class PlaytimeStatsView
         return container;
     }
 
-    private FrameworkElement BuildTrendPanel(StatsPalette palette)
+    /// <summary>
+    /// 日维度「近7日游玩趋势」卡片：占据整行，位于今日游戏构成卡片下方。
+    /// 左侧柱形图（带坐标轴完整版），右侧统计摘要 2×2 + 每日列表（超出滚动）。
+    /// </summary>
+    private FrameworkElement BuildDayTrendCard(StatsPalette palette)
     {
         var selectedGame = _snapshot.Games.FirstOrDefault(g => g.Uuid == _selectedGameId);
         var recent7 = StatsService.GetRecentDays(_selectedDate);
@@ -183,8 +188,9 @@ public sealed partial class PlaytimeStatsView
         var maxValue = trend.Count > 0 ? trend.Max(t => t.Minutes) : 0;
         var maxIndex = trend.FindIndex(t => t.Minutes == maxValue);
         var todayValue = trend.LastOrDefault()?.Minutes ?? 0;
+        var gameColor = selectedGame is not null ? (Color?)StatsTheme.SeriesColor(selectedGame.Uuid) : null;
 
-        // 头部
+        // 头部（标题 + 选中游戏时的返回按钮）
         var header = new Grid();
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -214,19 +220,19 @@ public sealed partial class PlaytimeStatsView
             Grid.SetColumn(backButton, 1);
         }
 
-        // 迷你图
-        var miniChart = new BarChart { Height = 110 };
-        miniChart.SetData(
+        // 左侧：柱形图（带坐标轴的完整版，末根柱为选中日高亮）
+        var chart = new BarChart();
+        chart.SetData(
             trend.Select(t => UiKit.FormatMD(t.Date)).ToList(),
             trend.Select(t => t.Hours).ToList(),
             palette,
             trend.Select(t => $"{UiKit.FormatMD(t.Date)} {UiKit.WeekDayName(t.Date.DayOfWeek)}\n{UiKit.FormatTime(t.Hours)}").ToList(),
-            highlightIndex: 6,
-            highlightColor: selectedGame is not null ? (Color?)StatsTheme.SeriesColor(selectedGame.Uuid) : null,
-            compact: true);
+            highlightIndex: trend.Count - 1,
+            highlightColor: gameColor,
+            compact: false);
 
-        // 摘要 2×2
-        var summary = new Grid { Margin = new Thickness(0, 12, 0, 0) };
+        // 右侧：摘要 2×2
+        var summary = new Grid();
         summary.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         summary.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         summary.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -239,34 +245,42 @@ public sealed partial class PlaytimeStatsView
         AddSummaryItem(summary, palette, UiKit.L("Trend_ActiveDays", "活跃天数"),
             $"{trend.Count(t => t.Minutes > 0)} / 7 {UiKit.L("Unit_Days", "天")}", 1, 1);
 
-        // 每日列表
+        // 右侧：每日列表（超出滚动）
         var list = new StackPanel();
         for (var i = 0; i < trend.Count; i++)
         {
-            list.Children.Add(BuildTrendRow(palette, trend[i], maxValue, todayValue, i == trend.Count - 1,
-                selectedGame is not null ? (Color?)StatsTheme.SeriesColor(selectedGame.Uuid) : null));
+            list.Children.Add(BuildTrendRow(palette, trend[i], maxValue, todayValue, i == trend.Count - 1, gameColor));
         }
 
-        var body = new ScrollViewer
+        var listScroll = new ScrollViewer
         {
             Content = list,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
         };
 
-        var root = new Grid();
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        root.Children.Add(header);
-        root.Children.Add(miniChart);
-        Grid.SetRow(miniChart, 1);
-        root.Children.Add(summary);
-        Grid.SetRow(summary, 2);
-        root.Children.Add(body);
-        Grid.SetRow(body, 3);
-        return WrapSideCard(palette, root);
+        var rightPanel = new Grid { Margin = new Thickness(20, 0, 0, 0) };
+        rightPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        rightPanel.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        rightPanel.Children.Add(summary);
+        rightPanel.Children.Add(listScroll);
+        Grid.SetRow(listScroll, 1);
+
+        // 主体：左图表 + 右统计，高度固定
+        var body = new Grid { Height = 280, Margin = new Thickness(0, 12, 0, 0) };
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.5, GridUnitType.Star) });
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        body.Children.Add(chart);
+        body.Children.Add(rightPanel);
+        Grid.SetColumn(rightPanel, 1);
+
+        var content = new Grid();
+        content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        content.Children.Add(header);
+        content.Children.Add(body);
+        Grid.SetRow(body, 1);
+        return UiKit.Card(palette, content, new Thickness(20));
     }
 
     private static void AddSummaryItem(Grid grid, StatsPalette palette, string label, string value, int column, int row)

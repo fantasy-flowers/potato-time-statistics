@@ -70,7 +70,7 @@
 - 踩坑：`Enumerable.Range(start, count)` 生成的是 start 起的**递增**序列——GetRecentDays 曾把 `Range(count-1, count)` 当倒序偏移 {6..0} 用，实际得到 {6..12}，近7日窗口整体前移 6 天且漏掉选中日；倒序偏移要自己算 `i - (count-1)`（2026-09 修复）
 - 踩坑：Path 画环形扇区 = 外弧(ArcSegment 顺时针) + 径向 LineSegment + 内弧(逆时针) + IsClosed；若外圈误写成直线弦、径向连接误写成弧线，扇区会变成上下两片「月牙」（DonutChart 2026-09 修复）。样式已对齐原型 ECharts 饼图：radius 48%/72%、padAngle 2° + 卡片底色描边、占比 ≥5% 外部标签带引导线
 - 踩坑：单条 ArcSegment 不允许起点=终点——360° 满圆时两点重合属退化弧，整段不渲染（100% 单扇区整环消失，2026-09 二修）；弧必须按 ≤180° 分段绘制，IsLargeArc 恒 false
-- 布局耦合：PlaytimeStatsView 日维度卡片 chartHost 固定 Height=430，环形图(Star 行)+图例(Auto 行)同卡分高，游戏多时图例行数暴涨把环形图挤小（环半径=min(w,h)/2，高度受限直接变小，2026-09）；优化方向：图例限高+内部滚动 / 图例与扇区都做 Top N+其他聚合 / 图表图例左右并排
+- 布局决策（2026-09 用户拍板）：日维度改为上下两张**整行**卡片——「今日游戏构成」主体固定 420 高（左半环形图 + 右半图例 ScrollViewer 滚动），「近7日趋势」主体固定 280 高（左 1.5* 完整柱形图带坐标轴 + 右 1* 摘要2×2/每日列表滚动）；根因：旧布局环形图(Star)+图例(Auto)同卡分高，53 款游戏时图例把环挤没；周/月维度仍保持左图表+右排行侧栏不变
 
 - 本机宿主为 PotatoVN 微软商店版：数据在 `%LOCALAPPDATA%\Packages\37126GoldenPotato137.PotatoVN_8vtbc0gbd4jey\LocalState`；本地库是 **LiteDB**（pvn_data.db，非 SQLite，Galgame 以 BSON 存）；插件目录 `LocalState\Plugins`（一插件一文件夹，DLL 为 A+32hex 哈希名）；本机系统时区为 UTC+8
 - 宿主自带手动编辑游玩时长入口：游戏详情页点击"游玩时长"数字 → `EditPlayTimeDialog`，按 `yyyy/M/d` 逐日添加分钟并自动重算 TotalPlayTime（官方安全注入方式）

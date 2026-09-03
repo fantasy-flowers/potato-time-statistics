@@ -16,7 +16,8 @@ using Windows.UI;
 namespace PotatoVN.App.PluginBase.Controls;
 
 /// <summary>
-/// 主内容区：左侧图表卡片（日=环形图 / 周、月=柱形图），右侧为侧栏。
+/// 主内容区：日维度为上下两张整行卡片（今日游戏构成 + 近7日趋势）；
+/// 周/月维度为左侧柱形图卡片 + 右侧排行侧栏。
 /// </summary>
 public sealed partial class PlaytimeStatsView
 {
@@ -24,6 +25,9 @@ public sealed partial class PlaytimeStatsView
 
     private FrameworkElement BuildMainContent(StatsPalette palette)
     {
+        if (_period == StatsPeriod.Day)
+            return BuildDayMainContent(palette);
+
         var root = new Grid();
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.6, GridUnitType.Star) });
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
@@ -36,24 +40,36 @@ public sealed partial class PlaytimeStatsView
         return root;
     }
 
+    /// <summary>
+    /// 日维度整行布局：上行「今日游戏构成」（左环形图 + 右图例滚动区），
+    /// 下行「近7日游玩趋势」（左柱形图 + 右统计内容）。
+    /// </summary>
+    private FrameworkElement BuildDayMainContent(StatsPalette palette)
+    {
+        var root = new Grid();
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(20) });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        root.Children.Add(BuildDayCompositionCard(palette));
+        var trendCard = BuildDayTrendCard(palette);
+        root.Children.Add(trendCard);
+        Grid.SetRow(trendCard, 2);
+        return root;
+    }
+
+    /// <summary>周/月维度的时长分布柱形图卡片</summary>
     private FrameworkElement BuildChartCard(StatsPalette palette)
     {
         var chartHost = new Grid { Height = 430 };
-        if (_period == StatsPeriod.Day)
-            chartHost.Children.Add(BuildDayChart(palette));
-        else
-            chartHost.Children.Add(BuildBarChart(palette));
+        chartHost.Children.Add(BuildBarChart(palette));
 
         var content = new Grid();
         content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         content.Children.Add(BuildCardHeader(palette,
-            _period == StatsPeriod.Day
-                ? UiKit.L("Chart_TodayTitle", "今日游戏构成")
-                : UiKit.L("Chart_DistTitle", "时长分布"),
-            _period == StatsPeriod.Day
-                ? UiKit.L("Chart_TodayHint", "点击扇区查看该游戏近7日趋势")
-                : UiKit.L("Chart_BarHint", "点击柱形可筛选对应时段的游戏排行")));
+            UiKit.L("Chart_DistTitle", "时长分布"),
+            UiKit.L("Chart_BarHint", "点击柱形可筛选对应时段的游戏排行")));
         content.Children.Add(chartHost);
         Grid.SetRow(chartHost, 1);
 
@@ -72,7 +88,11 @@ public sealed partial class PlaytimeStatsView
         return root;
     }
 
-    private FrameworkElement BuildDayChart(StatsPalette palette)
+    /// <summary>
+    /// 日维度「今日游戏构成」卡片：占据整行，左半环形图、右半游戏图例。
+    /// 卡片高度固定（图例不再挤占图表高度）；图例超出右半高度时滚动。
+    /// </summary>
+    private FrameworkElement BuildDayCompositionCard(StatsPalette palette)
     {
         var todayGames = StatsService.GetDayGames(_snapshot, _selectedDate);
         var totalMinutes = todayGames.Sum(g => g.Minutes);
@@ -125,15 +145,35 @@ public sealed partial class PlaytimeStatsView
                 MinRowSpacing = 6,
                 MinColumnSpacing = 8,
             },
+            // 与左侧环形图纵向居中对齐
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var legendScroll = new ScrollViewer
+        {
+            Content = legend,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Margin = new Thickness(20, 0, 0, 0),
         };
 
-        var root = new Grid();
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        root.Children.Add(donut);
-        root.Children.Add(legend);
-        Grid.SetRow(legend, 1);
-        return root;
+        // 主体：左右等宽两列，高度固定（环形图大小不再受图例条目数影响）
+        var body = new Grid { Height = 420 };
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        body.Children.Add(donut);
+        body.Children.Add(legendScroll);
+        Grid.SetColumn(legendScroll, 1);
+
+        var content = new Grid();
+        content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        content.Children.Add(BuildCardHeader(palette,
+            UiKit.L("Chart_TodayTitle", "今日游戏构成"),
+            UiKit.L("Chart_TodayHint", "点击扇区查看该游戏近7日趋势")));
+        content.Children.Add(body);
+        Grid.SetRow(body, 1);
+
+        return UiKit.Card(palette, content, new Thickness(20));
     }
 
     private FrameworkElement BuildBarChart(StatsPalette palette)
