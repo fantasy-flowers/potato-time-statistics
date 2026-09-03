@@ -68,6 +68,8 @@
 - 踩坑：ScrollViewer 的直接子元素设 MaxWidth+HorizontalAlignment.Stretch，窗口宽度超过 MaxWidth 后内容被截断时按"居中"排列 → 窗口越大整体内容越往右漂。正确做法：外层 Grid 撑满视口（不设 MaxWidth）+ 内容列 `ColumnDefinition { Star, MaxWidth }` 封顶；超宽居中用 container.SizeChanged 加左右对称 Padding（等价 CSS margin:0 auto，2026-09 StatsPage）。不能用三列 Star 对称留白（窗口不足封顶宽时内容列被挤窄），也不能 MaxWidth+Center（图表等拉伸元素 desired 宽不可靠会缩成自然宽）
 - 踩坑：Grid 同一 cell 内多个子元素不会自动排布——BarChart X 轴标签曾全部堆在绘图区左边缘，需 `Margin.Left = slotWidth * i` 偏移到对应柱形槽位；进度条类填充宽度不要把 0-100 百分数当像素值，用 `GridLength(percent, Star)` 星列按比例（GameStatsView trackGrid 模式）
 - 踩坑：`Enumerable.Range(start, count)` 生成的是 start 起的**递增**序列——GetRecentDays 曾把 `Range(count-1, count)` 当倒序偏移 {6..0} 用，实际得到 {6..12}，近7日窗口整体前移 6 天且漏掉选中日；倒序偏移要自己算 `i - (count-1)`（2026-09 修复）
+- 踩坑：Path 画环形扇区 = 外弧(ArcSegment 顺时针) + 径向 LineSegment + 内弧(逆时针) + IsClosed；若外圈误写成直线弦、径向连接误写成弧线，扇区会变成上下两片「月牙」（DonutChart 2026-09 修复）。样式已对齐原型 ECharts 饼图：radius 48%/72%、padAngle 2° + 卡片底色描边、占比 ≥5% 外部标签带引导线
+- 踩坑：单条 ArcSegment 不允许起点=终点——360° 满圆时两点重合属退化弧，整段不渲染（100% 单扇区整环消失，2026-09 二修）；弧必须按 ≤180° 分段绘制，IsLargeArc 恒 false
 
 ### Feedback / Lessons
 <!-- 用户纠正过的做法 + 原因。例：- 不要 mock 数据库测试，原因：上次 mock 通过但生产迁移失败 -->
