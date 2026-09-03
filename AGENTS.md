@@ -55,6 +55,9 @@
 ### Project Facts
 <!-- 架构、依赖、外部系统、为什么这么做。例：- 编译目标 net8.0-windows，原因：宿主 PotatoVN 限定 -->
 - 构建说明位于仓库根目录 BUILD.md，涵盖桌面客户端(MSIX)和后端服务(Docker/dotnet publish)两种构建方式
+- `sample/` 界面原型：`_html_full.html` = 双模块 HTML 原型（游戏时长统计 + 游戏统计，顶部 module-switch 切换，深色 #1b2838 主题）；原始单模块为 `游戏时长统计插件界面（含日期选择器） (1).html`
+- 踩坑：勿把 web.fetch/Read 长内容持久化输出直接存成 .html（每行带"行号<TAB>"前缀，浏览器打不开）；`_html_full.html` 曾因此损坏，已用原始 HTML 重建
+- 游戏统计模块数据全部来自宿主 `GetAllGames()` 快照（PlayType/TotalPlayTime/PlayedTime 日期→分钟），无需额外持久化；热力图直接聚合 PlayedTime
 
 ### Feedback / Lessons
 <!-- 用户纠正过的做法 + 原因。例：- 不要 mock 数据库测试，原因：上次 mock 通过但生产迁移失败 -->
