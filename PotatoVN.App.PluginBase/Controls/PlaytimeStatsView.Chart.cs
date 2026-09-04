@@ -28,7 +28,10 @@ public sealed partial class PlaytimeStatsView
         if (_period == StatsPeriod.Day)
             return BuildDayMainContent(palette);
 
-        var root = new Grid();
+        // 周/月：左右卡片同高对齐且高度固定（比旧版 ~494 更高），
+        // 否则行高会被右侧长排行列表撑开、左侧图表卡跟着被拉高；
+        // 高度受限后右侧列表的 ScrollViewer（Star 行）自动出现滚动条。
+        var root = new Grid { Height = 600 };
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.6, GridUnitType.Star) });
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -58,10 +61,10 @@ public sealed partial class PlaytimeStatsView
         return root;
     }
 
-    /// <summary>周/月维度的时长分布柱形图卡片</summary>
+    /// <summary>周/月维度的时长分布柱形图卡片（高度由外层固定，图表随卡片拉伸填充）</summary>
     private FrameworkElement BuildChartCard(StatsPalette palette)
     {
-        var chartHost = new Grid { Height = 430 };
+        var chartHost = new Grid();
         chartHost.Children.Add(BuildBarChart(palette));
 
         var content = new Grid();
