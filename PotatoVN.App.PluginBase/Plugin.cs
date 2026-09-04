@@ -20,7 +20,7 @@ namespace PotatoVN.App.PluginBase
         public PluginInfo Info { get; } = new()
         {
             Id = new Guid("9c3f7d21-4b8a-4e6c-8f2d-7a5b1e0c9d43"),
-            Name = "游戏统计",
+            Name = "统计",
             Description = "游戏时长统计与游戏库分析：按日/周/月查看游玩时长、游戏排行与近7日趋势，" +
                           "并提供游戏库分布、总时长排行与年度游玩强度热力图。",
         };
