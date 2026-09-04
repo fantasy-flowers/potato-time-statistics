@@ -73,6 +73,9 @@
 - 踩坑：单条 ArcSegment 不允许起点=终点——360° 满圆时两点重合属退化弧，整段不渲染（100% 单扇区整环消失，2026-09 二修）；弧必须按 ≤180° 分段绘制，IsLargeArc 恒 false
 - 布局决策（2026-09 用户拍板）：日维度改为上下两张**整行**卡片——「今日游戏构成」主体固定 420 高（左半环形图 + 右半图例 ScrollViewer 滚动），「近7日趋势」主体固定 280 高（左 1.5* 完整柱形图带坐标轴 + 右 1* 摘要2×2/每日列表滚动）；根因：旧布局环形图(Star)+图例(Auto)同卡分高，53 款游戏时图例把环挤没
 - 布局决策（2026-09 用户拍板）：周/月维度「左图表+右排行」两卡**同高定高 600**（BuildMainContent root.Height=600，图表卡 chartHost 不再写死 430、随卡拉伸）；根因：同行右侧长排行列表把行高撑开、左图表卡被拉着一起变高；高度受限后排行列表的 ScrollViewer（Star 行）自动滚动
+- 布局决策（2026-09 用户拍板）：游戏统计「游戏分布」卡从卡片网格改为与日维度一致的**左图右内容**（主体定高 420、左右等宽）；游玩状态=DonutChart+图例，引擎/公司=TreemapChart（squarified，Top 12+「其他」聚合）+排行式明细
+- DonutChart 已泛化：通用入口吃 `List<DonutDatum>{Id?,Name,Value,Icon?}`（占比按 Value），日维度 `List<GamePeriodTime>` 入口保留为包装（tooltip 传时长版，通用默认传数量版）；Id 为空的扇区不触发 SegmentClicked
+- 踩坑：WinUI 3 `Grid.SetColumn/SetRow` 第一个参数是 FrameworkElement 不是 UIElement，`grid.Children[i]`（UIElement）直接传入会 CS1503，要拿原始引用变量
 
 - 本机宿主为 PotatoVN 微软商店版：数据在 `%LOCALAPPDATA%\Packages\37126GoldenPotato137.PotatoVN_8vtbc0gbd4jey\LocalState`；本地库是 **LiteDB**（pvn_data.db，非 SQLite，Galgame 以 BSON 存）；插件目录 `LocalState\Plugins`（一插件一文件夹，DLL 为 A+32hex 哈希名）；本机系统时区为 UTC+8
 - 宿主自带手动编辑游玩时长入口：游戏详情页点击"游玩时长"数字 → `EditPlayTimeDialog`，按 `yyyy/M/d` 逐日添加分钟并自动重算 TotalPlayTime（官方安全注入方式）

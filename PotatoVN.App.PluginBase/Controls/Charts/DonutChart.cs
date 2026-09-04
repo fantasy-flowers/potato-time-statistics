@@ -14,6 +14,9 @@ using Windows.UI;
 
 namespace PotatoVN.App.PluginBase.Controls.Charts;
 
+/// <summary>环形图通用数据项（Id 仅用于点击/选中联动，可为空；Value 为占比依据）</summary>
+public sealed record DonutDatum(Guid? Id, string Name, double Value, string? Icon = null);
+
 /// <summary>
 /// 原生环形图（WinUI 自绘，无外部图表依赖）。
 /// 样式对齐 sample/_html_full.html 的 ECharts 饼图：
@@ -22,16 +25,17 @@ namespace PotatoVN.App.PluginBase.Controls.Charts;
 /// </summary>
 internal sealed class DonutChart : Grid
 {
-    /// <summary>扇区被点击（参数为游戏 Id）</summary>
+    /// <summary>扇区被点击（参数为数据项 Id；Id 为空的扇区不触发）</summary>
     public event EventHandler<Guid>? SegmentClicked;
 
     public string CenterLabel { get; set; } = string.Empty;
     public string CenterSubLabel { get; set; } = string.Empty;
 
-    private List<GamePeriodTime> _items = new();
+    private List<DonutDatum> _items = new();
     private Guid? _selectedId;
     private StatsPalette _palette = StatsTheme.For(ElementTheme.Dark);
-    private double _totalMinutes;
+    private double _totalValue;
+    private Func<DonutDatum, double, string> _tooltipBuilder = DefaultCountTooltip;
 
     public DonutChart()
     {
@@ -39,16 +43,40 @@ internal sealed class DonutChart : Grid
         SizeChanged += (_, _) => Render();
     }
 
+    /// <summary>日维度入口：按分钟算占比，tooltip 显示游玩时长</summary>
     public void SetData(List<GamePeriodTime> items, Guid? selectedId, StatsPalette palette,
         string centerLabel, string centerSubLabel)
+    {
+        SetData(items.Select(g => new DonutDatum(g.Id, g.Name, g.Minutes)).ToList(), selectedId, palette,
+            centerLabel, centerSubLabel, BuildTimeTooltip);
+    }
+
+    /// <summary>通用入口：占比按 <see cref="DonutDatum.Value"/> 算；tooltipBuilder 参数为 (数据项, 总值)</summary>
+    public void SetData(List<DonutDatum> items, Guid? selectedId, StatsPalette palette,
+        string centerLabel, string centerSubLabel, Func<DonutDatum, double, string>? tooltipBuilder = null)
     {
         _items = items;
         _selectedId = selectedId;
         _palette = palette;
         CenterLabel = centerLabel;
         CenterSubLabel = centerSubLabel;
-        _totalMinutes = items.Sum(i => (long)i.Minutes);
+        _tooltipBuilder = tooltipBuilder ?? DefaultCountTooltip;
+        _totalValue = items.Sum(i => i.Value);
         Render();
+    }
+
+    private static string BuildTimeTooltip(DonutDatum item, double total)
+    {
+        var percent = total > 0 ? item.Value / total * 100.0 : 0.0;
+        return $"{item.Name}\n{UiKit.L("Chart_Time", "游玩时长")}：{UiKit.FormatTime(item.Value / 60.0)}\n" +
+               $"{UiKit.L("Chart_Percent", "占比")}：{percent.ToString("F1")}%";
+    }
+
+    private static string DefaultCountTooltip(DonutDatum item, double total)
+    {
+        var percent = total > 0 ? item.Value / total * 100.0 : 0.0;
+        return $"{item.Name}\n{UiKit.L("Chart_Count", "数量")}：{item.Value.ToString("F0")}\n" +
+               $"{UiKit.L("Chart_Percent", "占比")}：{percent.ToString("F1")}%";
     }
 
     private void Render()
@@ -63,7 +91,7 @@ internal sealed class DonutChart : Grid
             return;
         }
 
-        if (_items.Count == 0 || _totalMinutes <= 0)
+        if (_items.Count == 0 || _totalValue <= 0)
         {
             Children.Add(UiKit.EmptyState(UiKit.L("Chart_NoData", "暂无游戏记录"), _palette.TextMuted));
             return;
@@ -80,7 +108,7 @@ internal sealed class DonutChart : Grid
         for (var i = 0; i < _items.Count; i++)
         {
             var item = _items[i];
-            var sweep = item.Minutes / (double)_totalMinutes * 360.0;
+            var sweep = item.Value / _totalValue * 360.0;
 
             // 原型 padAngle: 2 → 相邻扇区间共 2° 间隙（每侧收 1°）；单扇区满圆时不收
             var pad = separated ? Math.Min(1.0, sweep / 6.0) : 0.0;
@@ -94,19 +122,23 @@ internal sealed class DonutChart : Grid
                 segment.StrokeThickness = 2;
             }
 
-            var isSelected = _selectedId == item.Id;
-            if (_selectedId is not null && !isSelected)
+            var isSelected = _selectedId is not null && item.Id is not null && _selectedId == item.Id;
+            if (_selectedId is not null && item.Id is not null && !isSelected)
                 segment.Opacity = 0.3;
             else if (isSelected)
                 segment.Stroke = _palette.AccentBrightBrush;
 
-            ToolTipService.SetToolTip(segment, BuildTooltip(item, _totalMinutes));
+            ToolTipService.SetToolTip(segment, _tooltipBuilder(item, _totalValue));
             var index = i;
-            segment.Tapped += (_, _) => SegmentClicked?.Invoke(this, _items[index].Id);
+            segment.Tapped += (_, _) =>
+            {
+                if (_items[index].Id is { } id)
+                    SegmentClicked?.Invoke(this, id);
+            };
             Children.Add(segment);
 
             // 外部标签：原型 label.formatter 对占比 <5% 返回空
-            var percent = item.Minutes / (double)_totalMinutes * 100.0;
+            var percent = item.Value / _totalValue * 100.0;
             if (percent >= 5)
                 labels.Add(new DonutLabel(item.Name, percent, startAngle + sweep / 2.0));
 
@@ -139,13 +171,6 @@ internal sealed class DonutChart : Grid
             TextWrapping = TextWrapping.Wrap,
         });
         Children.Add(centerPanel);
-    }
-
-    private static string BuildTooltip(GamePeriodTime item, double total)
-    {
-        var percent = total > 0 ? item.Minutes / total * 100.0 : 0.0;
-        return $"{item.Name}\n{UiKit.L("Chart_Time", "游玩时长")}：{UiKit.FormatTime(item.Hours)}\n" +
-               $"{UiKit.L("Chart_Percent", "占比")}：{percent.ToString("F1")}%";
     }
 
     /// <summary>
