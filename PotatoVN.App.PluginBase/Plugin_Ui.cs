@@ -23,13 +23,13 @@ public partial class Plugin
         _hostApi.RegisterSidebarButton(new SidebarButtonInfo
         {
             Id = "open-stats",
-            Text = L("Sidebar_Text", "游戏统计"),
+            Text = L("Sidebar_Text", "统计"),
             Placement = SidebarButtonPlacement.Menu,
             FluentGlyph = "&#xE9D9;",
             FallbackGlyph = "\uE9D9",
         }, () =>
         {
-            _hostApi.NavigateTo(typeof(StatsPage), L("Page_Title", "游戏统计"));
+            _hostApi.NavigateTo(typeof(StatsPage), L("Page_Title", "统计"));
             return Task.CompletedTask;
         });
         _uiInit = true;

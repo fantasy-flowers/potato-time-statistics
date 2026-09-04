@@ -61,6 +61,7 @@
 - 游戏统计模块数据全部来自宿主 `GetAllGames()` 快照（PlayType/TotalPlayTime/PlayedTime 日期→分钟），无需额外持久化；热力图直接聚合 PlayedTime
 - `Galgame.PlayedTime` 键格式为 `yyyy/M/d`（ToStringDefault），值为分钟；插件只引用 WinApp.Base（无 GalgameManager.Core），日期解析需自带（StatsService 支持 yyyy/M/d、yyyy-MM-dd 等）
 - 宿主以 `Activator.CreateInstance(pageType)` 无参构造插件 Page，且 `NavigateTo(Type,title,parameter)` 的 parameter 不会传给页面 → 插件页面必须保留无参 ctor，共享数据走 `Plugin.CurrentData`
+- 部署方式（2026-09-04 实测）：开发中的本插件不在 `Plugins` 目录，宿主从 `LocalState\_PluginXamlHotReload\<时间戳>_<guid>\` 加载；更新 = 把 Release 产物的 dll/pdb/pri/deps.json + Strings/*.json 覆盖进去后重启宿主（侧边栏文字/页面标题只在插件加载时读取）
 - 统计图表采用 WinUI 原生自绘（Path 环形图/Rectangle 柱形图），零图表库依赖；踩坑：WinUI 3 无 UniformGrid 控件、Thickness 无 2 参构造、Color 在 Windows.UI、FontWeight 在 Windows.UI.Text、FlyoutPlacementMode 在 Microsoft.UI.Xaml.Controls.Primitives
 - 脚手架依赖 AngleSharp 未被插件代码使用且带已知漏洞（NU1902），已从 csproj 移除
 - 踩坑：COMException 0x800F1000「没有检测到已安装的组件」是 XAML 错误码与 SPAPI 撞号，真实含义 = "Element is already the child of another element"。共享 UIElement（readonly 字段的 Canvas/Grid/View）重复挂载到新父级前必须先从旧父级移除；`Children.Clear()`/`Content=null` 只解除直接子级，孙级仍保留父级引用（BarChart 用 _plotGrid 字段复用、StatsPage 加 DetachFromParent 修复，2026-09）
@@ -70,7 +71,8 @@
 - 踩坑：`Enumerable.Range(start, count)` 生成的是 start 起的**递增**序列——GetRecentDays 曾把 `Range(count-1, count)` 当倒序偏移 {6..0} 用，实际得到 {6..12}，近7日窗口整体前移 6 天且漏掉选中日；倒序偏移要自己算 `i - (count-1)`（2026-09 修复）
 - 踩坑：Path 画环形扇区 = 外弧(ArcSegment 顺时针) + 径向 LineSegment + 内弧(逆时针) + IsClosed；若外圈误写成直线弦、径向连接误写成弧线，扇区会变成上下两片「月牙」（DonutChart 2026-09 修复）。样式已对齐原型 ECharts 饼图：radius 48%/72%、padAngle 2° + 卡片底色描边、占比 ≥5% 外部标签带引导线
 - 踩坑：单条 ArcSegment 不允许起点=终点——360° 满圆时两点重合属退化弧，整段不渲染（100% 单扇区整环消失，2026-09 二修）；弧必须按 ≤180° 分段绘制，IsLargeArc 恒 false
-- 布局决策（2026-09 用户拍板）：日维度改为上下两张**整行**卡片——「今日游戏构成」主体固定 420 高（左半环形图 + 右半图例 ScrollViewer 滚动），「近7日趋势」主体固定 280 高（左 1.5* 完整柱形图带坐标轴 + 右 1* 摘要2×2/每日列表滚动）；根因：旧布局环形图(Star)+图例(Auto)同卡分高，53 款游戏时图例把环挤没；周/月维度仍保持左图表+右排行侧栏不变
+- 布局决策（2026-09 用户拍板）：日维度改为上下两张**整行**卡片——「今日游戏构成」主体固定 420 高（左半环形图 + 右半图例 ScrollViewer 滚动），「近7日趋势」主体固定 280 高（左 1.5* 完整柱形图带坐标轴 + 右 1* 摘要2×2/每日列表滚动）；根因：旧布局环形图(Star)+图例(Auto)同卡分高，53 款游戏时图例把环挤没
+- 布局决策（2026-09 用户拍板）：周/月维度「左图表+右排行」两卡**同高定高 600**（BuildMainContent root.Height=600，图表卡 chartHost 不再写死 430、随卡拉伸）；根因：同行右侧长排行列表把行高撑开、左图表卡被拉着一起变高；高度受限后排行列表的 ScrollViewer（Star 行）自动滚动
 
 - 本机宿主为 PotatoVN 微软商店版：数据在 `%LOCALAPPDATA%\Packages\37126GoldenPotato137.PotatoVN_8vtbc0gbd4jey\LocalState`；本地库是 **LiteDB**（pvn_data.db，非 SQLite，Galgame 以 BSON 存）；插件目录 `LocalState\Plugins`（一插件一文件夹，DLL 为 A+32hex 哈希名）；本机系统时区为 UTC+8
 - 宿主自带手动编辑游玩时长入口：游戏详情页点击"游玩时长"数字 → `EditPlayTimeDialog`，按 `yyyy/M/d` 逐日添加分钟并自动重算 TotalPlayTime（官方安全注入方式）
