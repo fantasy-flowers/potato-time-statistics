@@ -121,6 +121,7 @@ public sealed partial class PlaytimeStatsView
             {
                 if (cell.Disabled) return;
                 _selectedDate = targetDate;
+                ClearChartSelection();
                 flyout.Hide();
                 BuildUi();
             };
@@ -181,6 +182,7 @@ public sealed partial class PlaytimeStatsView
             {
                 _selectedMonth = targetMonth;
                 _selectedYear = _panelYear;
+                ClearChartSelection();
                 flyout.Hide();
                 BuildUi();
             };
@@ -279,6 +281,7 @@ public sealed partial class PlaytimeStatsView
             _selectedDate = now;
             _selectedYear = now.Year;
             _selectedMonth = now.Month - 1;
+            ClearChartSelection();
             flyout.Hide();
             BuildUi();
         };

@@ -123,10 +123,19 @@ public sealed partial class PlaytimeStatsView : Grid
             _selectedMonth = _selectedDate.Month - 1;
         }
 
-        _selectedIndex = null;
-        _selectedGameId = null;
+        ClearChartSelection();
         _data.DefaultPeriod = _period switch { StatsPeriod.Week => "week", StatsPeriod.Month => "month", _ => "day" };
         BuildUi();
+    }
+
+    /// <summary>
+    /// 清除图表筛选状态：环形图选中游戏（日维度）与柱形图选中下标（周/月维度）。
+    /// 切换日期、月份或维度时都要调用，否则筛选会残留到新的时段上。
+    /// </summary>
+    private void ClearChartSelection()
+    {
+        _selectedIndex = null;
+        _selectedGameId = null;
     }
 
     #endregion
