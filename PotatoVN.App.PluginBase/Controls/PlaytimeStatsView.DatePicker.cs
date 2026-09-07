@@ -153,6 +153,8 @@ public sealed partial class PlaytimeStatsView
         var now = DateTime.Today;
         var grid = new Grid();
         for (var i = 0; i < 3; i++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        // 4 行（每行 3 个月）：未定义的行号会被压到第 0 行，导致 4 个月份按钮同格重叠成重影
+        for (var i = 0; i < 4; i++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         for (var month = 0; month < 12; month++)
         {

@@ -103,6 +103,9 @@
   "Heat_L2": "1–3 h",
   "Heat_L3": "3–6 h",
   "Heat_L4": "≥6 h",
+  "Heat_SumDays": "Days played",
+  "Heat_MaxDay": "Hottest day",
+  "Heat_Streak": "Longest streak",
 
   "Setting_Period_Title": "Default Period",
   "Setting_Period_Desc": "Default playtime statistics period when opening the plugin",

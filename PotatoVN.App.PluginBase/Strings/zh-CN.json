@@ -103,6 +103,9 @@
   "Heat_L2": "1–3 小时",
   "Heat_L3": "3–6 小时",
   "Heat_L4": "≥6 小时",
+  "Heat_SumDays": "总游玩天数",
+  "Heat_MaxDay": "最热的一天",
+  "Heat_Streak": "连续游玩",
 
   "Setting_Period_Title": "默认统计维度",
   "Setting_Period_Desc": "打开插件时默认展示的时长统计维度",

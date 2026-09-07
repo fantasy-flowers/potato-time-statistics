@@ -73,27 +73,22 @@ public sealed partial class GameStatsView : Grid
 
     private FrameworkElement BuildHeader(StatsPalette palette)
     {
+        // 年份选择器已移入热力图卡 header 右侧（BuildHeatmapCard），页面头部只保留标题+副标题
         var titlePanel = new StackPanel();
         titlePanel.Children.Add(UiKit.Text(UiKit.L("Stats_Title", "游戏统计"), palette.TextPrimary, 22, FontWeights.Bold));
         titlePanel.Children.Add(UiKit.Text(
             UiKit.L("Stats_Subtitle", "游戏库规模 · 游玩状态 · 时长排行 · 年度游玩强度"), palette.TextSecondary, 12.5));
-
-        var yearNav = BuildYearNav(palette);
-
-        var root = new Grid();
-        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        root.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        root.Children.Add(titlePanel);
-        root.Children.Add(yearNav);
-        Grid.SetColumn(yearNav, 1);
-        return root;
+        return titlePanel;
     }
 
     private FrameworkElement BuildYearNav(StatsPalette palette)
     {
         var yearText = UiKit.Text(_year.ToString(), palette.TextPrimary, 14, FontWeights.SemiBold,
             textAlignment: TextAlignment.Center);
-        yearText.MinWidth = 56;
+        // 必须固定 Width（MinWidth 会让 TextBlock 按内容收缩、TextAlignment.Center 失效），
+        // 且默认垂直 Stretch 文字贴顶、相对 32px 按钮偏高，需 VerticalAlignment=Center
+        yearText.Width = 56;
+        yearText.VerticalAlignment = VerticalAlignment.Center;
 
         var prevButton = BuildYearButton(palette, "\uE76B");
         prevButton.IsEnabled = _year > _snapshot.MinYear;

@@ -22,6 +22,8 @@ public sealed partial class GameStatsView
 
     private FrameworkElement BuildMainGrid(StatsPalette palette)
     {
+        // 两卡同高：行高由较高一方决定（通常为排行卡），热力图卡默认 Stretch 填满；
+        // 热力图卡内部把余量分给热力图行（Star），图例贴底。
         var root = new Grid();
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
@@ -60,13 +62,20 @@ public sealed partial class GameStatsView
         header.Children.Add(rankHint);
         Grid.SetColumn(rankHint, 1);
 
+        var listScroll = new ScrollViewer
+        {
+            Content = list,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+        };
+
         var content = new Grid();
         content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         content.Children.Add(header);
-        content.Children.Add(list);
-        Grid.SetRow(list, 1);
-        list.Margin = new Thickness(0, 12, 0, 0);
+        content.Children.Add(listScroll);
+        Grid.SetRow(listScroll, 1);
+        listScroll.Margin = new Thickness(0, 12, 0, 0);
 
         return UiKit.Card(palette, content, new Thickness(20));
     }
@@ -121,39 +130,104 @@ public sealed partial class GameStatsView
 
     private FrameworkElement BuildHeatmapCard(StatsPalette palette)
     {
+        // 年度数据只算一次，年度摘要与热力图共用
+        var daily = StatsService.GetYearDaily(_snapshot, _year);
+
         var header = new Grid();
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.Children.Add(UiKit.Text(
             UiKit.Lf("Fmt_YearHeatTitle", "{0} 年游玩强度热力图", _year), palette.TextPrimary, 15, FontWeights.SemiBold));
-        var heatHint = UiKit.Text(
-            UiKit.L("Stats_HeatHint", "GitHub 贡献图风格 · 颜色越深当日游玩越久"), palette.TextMuted, 11);
-        header.Children.Add(heatHint);
-        Grid.SetColumn(heatHint, 1);
+        // 年份选择器放在卡 header 右侧（原 hint 位置；hint 移到图例行右侧）
+        var yearNav = BuildYearNav(palette);
+        header.Children.Add(yearNav);
+        Grid.SetColumn(yearNav, 1);
 
+        // 行序固定：header(Auto) / 年度摘要(Auto) / 热力图(Star) / 图例(Auto)
+        // 热力图行用 Star 吃掉卡片余量（两卡同高时由排行卡撑起的差值），图例贴底
         var content = new Grid();
+        content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         content.Children.Add(header);
 
-        var heat = BuildHeatmap(palette, _year);
+        var summary = BuildYearSummary(palette, daily);
+        content.Children.Add(summary);
+        Grid.SetRow(summary, 1);
+        summary.Margin = new Thickness(0, 12, 0, 0);
+
+        var heat = BuildHeatmap(palette, _year, daily);
         content.Children.Add(heat);
-        Grid.SetRow(heat, 1);
+        Grid.SetRow(heat, 2);
         heat.Margin = new Thickness(0, 12, 0, 0);
 
         var heatLegend = BuildHeatLegend(palette);
         content.Children.Add(heatLegend);
-        Grid.SetRow(heatLegend, 2);
+        Grid.SetRow(heatLegend, 3);
 
         return UiKit.Card(palette, content, new Thickness(20));
     }
 
-    private FrameworkElement BuildHeatmap(StatsPalette palette, int year)
+    /// <summary>
+    /// 年度摘要：总游玩天数 / 最热的一天 / 连续游玩，三张并排等宽小卡
+    /// （样式对齐「近7日趋势」摘要项：label 小字 + 数值大字）。
+    /// </summary>
+    private FrameworkElement BuildYearSummary(StatsPalette palette, Dictionary<DateTime, int> daily)
+    {
+        var activeDays = daily.Where(kv => kv.Value > 0).Select(kv => kv.Key.Date).Distinct()
+            .OrderBy(d => d).ToList();
+
+        // 最热的一天
+        var maxText = "—";
+        if (activeDays.Count > 0)
+        {
+            var maxDay = activeDays.Select(d => (Date: d, Minutes: daily[d])).OrderByDescending(x => x.Minutes).First();
+            maxText = $"{UiKit.FormatMD(maxDay.Date)} · {UiKit.FormatHours(maxDay.Minutes / 60.0)}h";
+        }
+
+        // 最长连续游玩天数
+        var streak = 0;
+        var current = 0;
+        DateTime? previous = null;
+        foreach (var day in activeDays)
+        {
+            current = previous.HasValue && (day - previous.Value).Days == 1 ? current + 1 : 1;
+            streak = Math.Max(streak, current);
+            previous = day;
+        }
+
+        var unit = UiKit.L("Unit_Days", "天");
+        var grid = UiKit.EqualColumns(new FrameworkElement[]
+        {
+            BuildYearSummaryCard(palette, UiKit.L("Heat_SumDays", "总游玩天数"), $"{activeDays.Count} {unit}"),
+            BuildYearSummaryCard(palette, UiKit.L("Heat_MaxDay", "最热的一天"), maxText),
+            BuildYearSummaryCard(palette, UiKit.L("Heat_Streak", "连续游玩"), $"{streak} {unit}"),
+        }, columnSpacing: 12);
+        return grid;
+    }
+
+    private static FrameworkElement BuildYearSummaryCard(StatsPalette palette, string label, string value)
+    {
+        var panel = new StackPanel();
+        panel.Children.Add(UiKit.Text(label, palette.TextMuted, 10.5));
+        panel.Children.Add(UiKit.Text(value, palette.TextPrimary, 14.5, FontWeights.SemiBold,
+            margin: new Thickness(0, 2, 0, 0), trimming: TextTrimming.CharacterEllipsis));
+        return new Border
+        {
+            Background = palette.BgSecondaryBrush,
+            BorderBrush = palette.BorderBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(12, 8, 12, 8),
+            Child = panel,
+        };
+    }
+
+    private FrameworkElement BuildHeatmap(StatsPalette palette, int year, Dictionary<DateTime, int> daily)
     {
         const int cellSize = 13;
         const int cellGap = 3;
-        var daily = StatsService.GetYearDaily(_snapshot, year);
 
         var jan1 = new DateTime(year, 1, 1);
         var start = StatsService.GetMonday(jan1);
@@ -222,7 +296,8 @@ public sealed partial class GameStatsView
                 maxWidth: cellSize, margin: new Thickness(0, 0, 0, cellGap)));
         }
 
-        var root = new Grid();
+        // 防御性居中：所在行现为 Auto（紧贴内容），若日后改回 Star 行则余量上下平分
+        var root = new Grid { VerticalAlignment = VerticalAlignment.Center };
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         root.Children.Add(dayLabels);
@@ -233,7 +308,7 @@ public sealed partial class GameStatsView
 
     private FrameworkElement BuildHeatLegend(StatsPalette palette)
     {
-        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(0, 12, 0, 0) };
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         panel.Children.Add(UiKit.Text(UiKit.L("Heat_Less", "少"), palette.TextMuted, 11));
         for (var level = 0; level < palette.HeatLevels.Count; level++)
         {
@@ -251,7 +326,19 @@ public sealed partial class GameStatsView
         panel.Children.Add(UiKit.Text(UiKit.L("Heat_More", "多"), palette.TextMuted, 11));
         panel.Children.Add(UiKit.Text(UiKit.L("Heat_Tip", "每日总游玩时长"), palette.TextMuted, 11,
             margin: new Thickness(6, 0, 0, 0)));
-        return panel;
+
+        // 原卡 header 右侧的 hint 移到图例行右侧（对齐原型"每日总游玩时长"位置）
+        var hint = UiKit.Text(
+            UiKit.L("Stats_HeatHint", "GitHub 贡献图风格 · 颜色越深当日游玩越久"), palette.TextMuted, 11);
+        hint.VerticalAlignment = VerticalAlignment.Center;
+
+        var root = new Grid { Margin = new Thickness(0, 12, 0, 0) };
+        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        root.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        root.Children.Add(panel);
+        root.Children.Add(hint);
+        Grid.SetColumn(hint, 1);
+        return root;
     }
 
     private static string HeatLevelName(int level)

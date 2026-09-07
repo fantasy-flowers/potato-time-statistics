@@ -61,7 +61,8 @@
 - 游戏统计模块数据全部来自宿主 `GetAllGames()` 快照（PlayType/TotalPlayTime/PlayedTime 日期→分钟），无需额外持久化；热力图直接聚合 PlayedTime
 - `Galgame.PlayedTime` 键格式为 `yyyy/M/d`（ToStringDefault），值为分钟；插件只引用 WinApp.Base（无 GalgameManager.Core），日期解析需自带（StatsService 支持 yyyy/M/d、yyyy-MM-dd 等）
 - 宿主以 `Activator.CreateInstance(pageType)` 无参构造插件 Page，且 `NavigateTo(Type,title,parameter)` 的 parameter 不会传给页面 → 插件页面必须保留无参 ctor，共享数据走 `Plugin.CurrentData`
-- 部署方式（2026-09-04 实测）：开发中的本插件不在 `Plugins` 目录，宿主从 `LocalState\_PluginXamlHotReload\<时间戳>_<guid>\` 加载；更新 = 把 Release 产物的 dll/pdb/pri/deps.json + Strings/*.json 覆盖进去后重启宿主（侧边栏文字/页面标题只在插件加载时读取）
+- 热重载机制（了解即可）：开发中的本插件不在 `Plugins` 目录，宿主从 `LocalState\_PluginXamlHotReload\<时间戳>_<guid>\` 加载（会话目录每次部署会换名）；**但不要手动把构建产物部署过去**（见 Feedback），改完代码构建/打包通过即可
+- 踩坑（2026-09-07）：Git Bash 会话 `APPDATA`/`LOCALAPPDATA` 为空时，dotnet build 还原阶段报 NuGet.targets(789) "Value cannot be null. (Parameter 'path1')"；依赖未变时直接 `dotnet build --no-restore` 绕过（project.assets.json 已在 obj/）
 - 统计图表采用 WinUI 原生自绘（Path 环形图/Rectangle 柱形图），零图表库依赖；踩坑：WinUI 3 无 UniformGrid 控件、Thickness 无 2 参构造、Color 在 Windows.UI、FontWeight 在 Windows.UI.Text、FlyoutPlacementMode 在 Microsoft.UI.Xaml.Controls.Primitives
 - 脚手架依赖 AngleSharp 未被插件代码使用且带已知漏洞（NU1902），已从 csproj 移除
 - 踩坑：COMException 0x800F1000「没有检测到已安装的组件」是 XAML 错误码与 SPAPI 撞号，真实含义 = "Element is already the child of another element"。共享 UIElement（readonly 字段的 Canvas/Grid/View）重复挂载到新父级前必须先从旧父级移除；`Children.Clear()`/`Content=null` 只解除直接子级，孙级仍保留父级引用（BarChart 用 _plotGrid 字段复用、StatsPage 加 DetachFromParent 修复，2026-09）
@@ -69,11 +70,15 @@
 - 踩坑：ScrollViewer 的直接子元素设 MaxWidth+HorizontalAlignment.Stretch，窗口宽度超过 MaxWidth 后内容被截断时按"居中"排列 → 窗口越大整体内容越往右漂。正确做法：外层 Grid 撑满视口（不设 MaxWidth）+ 内容列 `ColumnDefinition { Star, MaxWidth }` 封顶；超宽居中用 container.SizeChanged 加左右对称 Padding（等价 CSS margin:0 auto，2026-09 StatsPage）。不能用三列 Star 对称留白（窗口不足封顶宽时内容列被挤窄），也不能 MaxWidth+Center（图表等拉伸元素 desired 宽不可靠会缩成自然宽）
 - 踩坑：Grid 同一 cell 内多个子元素不会自动排布——BarChart X 轴标签曾全部堆在绘图区左边缘，需 `Margin.Left = slotWidth * i` 偏移到对应柱形槽位；进度条类填充宽度不要把 0-100 百分数当像素值，用 `GridLength(percent, Star)` 星列按比例（GameStatsView trackGrid 模式）
 - 踩坑：`Enumerable.Range(start, count)` 生成的是 start 起的**递增**序列——GetRecentDays 曾把 `Range(count-1, count)` 当倒序偏移 {6..0} 用，实际得到 {6..12}，近7日窗口整体前移 6 天且漏掉选中日；倒序偏移要自己算 `i - (count-1)`（2026-09 修复）
+- 踩坑：WinUI Grid 的 `Grid.SetRow` 超出已定义行数时**静默压到最后一行**（不报错）——月选择面板 12 个月按钮只定义了 3 列没定义 4 行，结果 1/4/7/10 月同格重叠成"重影"、面板塌缩成一行；用 SetRow 前必须补齐 RowDefinitions（2026-09-08 修复）
 - 踩坑：Path 画环形扇区 = 外弧(ArcSegment 顺时针) + 径向 LineSegment + 内弧(逆时针) + IsClosed；若外圈误写成直线弦、径向连接误写成弧线，扇区会变成上下两片「月牙」（DonutChart 2026-09 修复）。样式已对齐原型 ECharts 饼图：radius 48%/72%、padAngle 2° + 卡片底色描边、占比 ≥5% 外部标签带引导线
 - 踩坑：单条 ArcSegment 不允许起点=终点——360° 满圆时两点重合属退化弧，整段不渲染（100% 单扇区整环消失，2026-09 二修）；弧必须按 ≤180° 分段绘制，IsLargeArc 恒 false
 - 布局决策（2026-09 用户拍板）：日维度改为上下两张**整行**卡片——「今日游戏构成」主体固定 420 高（左半环形图 + 右半图例 ScrollViewer 滚动），「近7日趋势」主体固定 280 高（左 1.5* 完整柱形图带坐标轴 + 右 1* 摘要2×2/每日列表滚动）；根因：旧布局环形图(Star)+图例(Auto)同卡分高，53 款游戏时图例把环挤没
 - 布局决策（2026-09 用户拍板）：周/月维度「左图表+右排行」两卡**同高定高 600**（BuildMainContent root.Height=600，图表卡 chartHost 不再写死 430、随卡拉伸）；根因：同行右侧长排行列表把行高撑开、左图表卡被拉着一起变高；高度受限后排行列表的 ScrollViewer（Star 行）自动滚动
 - 布局决策（2026-09 用户拍板）：游戏统计「游戏分布」卡从卡片网格改为与日维度一致的**左图右内容**（主体定高 420、左右等宽）；游玩状态=DonutChart+图例，引擎/公司=TreemapChart（squarified，Top 12+「其他」聚合）+排行式明细
+- 热力图卡空白根因（2026-09）：BuildMainGrid 无定高、所在行是 Star 被拉满；热力图内容固定约 135px 高且在 ScrollViewer 内顶对齐、图例钉卡底 → 中部大片空白。53列×7行纵横比固定，放大格子填高必然横向溢出。**最终方案（2026-09-07 用户两次拍板）**：年度摘要三卡（总游玩天数/最热的一天/连续游玩，GetYearDaily 在 BuildHeatmapCard 算一次共用）置于热力图上方；热力图行用 **Auto 紧贴内容** + 卡片 VerticalAlignment=Top + BuildMainGrid **不定高**——用户否决了"两卡同高定高 580"的中间方案，要求卡片按内容自然高、不要热力图上下留白。**（2026-09-08 更新）**用户随后要求热力图卡与左侧排行卡**同高**：已改为卡片默认 Stretch 填满行高、热力图行 Star（余量上下平分）、图例贴底，2026-09-07 的 Top 方案作废
+- 年份选择器居中踩坑（2026-09 已修复）：yearText 用 MinWidth=56 不设 Width，数字窄于 56 时 TextBlock 按内容收缩、TextAlignment.Center 无效；且默认垂直 Stretch 文字贴顶、相对 32px 按钮偏高 → 修法 Width=56 + VerticalAlignment=Center。年份选择器已从页面 header 移入热力图卡 header 右侧（原 hint 位置），hint 移到图例行右侧
+- 踩坑（2026-09-07）：Git Bash 下 `dotnet restore/build` 突然报 `Value cannot be null (Parameter 'path1')`（NuGet.targets _GetRestoreSettingsTask，09-04 还正常，属环境回归非仓库问题）；包未变更时 `dotnet build --no-restore` 可绕过（obj 里 assets 文件仍有效）
 - DonutChart 已泛化：通用入口吃 `List<DonutDatum>{Id?,Name,Value,Icon?}`（占比按 Value），日维度 `List<GamePeriodTime>` 入口保留为包装（tooltip 传时长版，通用默认传数量版）；Id 为空的扇区不触发 SegmentClicked
 - 踩坑：WinUI 3 `Grid.SetColumn/SetRow` 第一个参数是 FrameworkElement 不是 UIElement，`grid.Children[i]`（UIElement）直接传入会 CS1503，要拿原始引用变量
 
@@ -84,6 +89,7 @@
 
 ### Feedback / Lessons
 <!-- 用户纠正过的做法 + 原因。例：- 不要 mock 数据库测试，原因：上次 mock 通过但生产迁移失败 -->
+- 不要把构建产物手动部署到 `_PluginXamlHotReload` 目录（2026-09-08 用户明确）：部署由用户侧自己完成，我只需构建/打包通过并报告产物位置
 
 ### References
 <!-- 外部资源指针。例：- 报错日志查 Grafana: grafana.internal/d/plugin-runtime -->

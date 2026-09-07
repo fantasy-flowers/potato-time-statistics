@@ -103,6 +103,9 @@
   "Heat_L2": "1–3 時間",
   "Heat_L3": "3–6 時間",
   "Heat_L4": "6 時間以上",
+  "Heat_SumDays": "総プレイ日数",
+  "Heat_MaxDay": "最も遊んだ日",
+  "Heat_Streak": "連続プレイ",
 
   "Setting_Period_Title": "デフォルトの集計期間",
   "Setting_Period_Desc": "プラグインを開いたときのデフォルトの集計期間",
