@@ -20,6 +20,10 @@ namespace PotatoVN.App.PluginBase.Controls;
 /// </summary>
 public sealed partial class PlaytimeStatsView
 {
+    /// <summary>日期/月份选择项的半透明白边框（深底上勾出可选范围）</summary>
+    private static readonly SolidColorBrush FaintWhiteBorderBrush =
+        new(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF));
+
     #region 日期选择器
 
     private FrameworkElement BuildDatePickerButton(StatsPalette palette)
@@ -110,11 +114,16 @@ public sealed partial class PlaytimeStatsView
                 Width = 34,
                 Height = 34,
                 CornerRadius = new CornerRadius(4),
+                BorderBrush = FaintWhiteBorderBrush,
+                BorderThickness = new Thickness(1),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(0, 2, 0, 2),
             };
-            border.Child = UiKit.Text(date.Day.ToString(), palette.TextSecondary, 12, textAlignment: TextAlignment.Center);
+            var dayLabel = UiKit.Text(date.Day.ToString(), palette.TextSecondary, 12, textAlignment: TextAlignment.Center);
+            // TextBlock 默认顶对齐，数字会贴在 34px 格子上沿，这里垂直居中
+            dayLabel.VerticalAlignment = VerticalAlignment.Center;
+            border.Child = dayLabel;
 
             var targetDate = date;
             border.Tapped += (_, _) =>
@@ -170,7 +179,7 @@ public sealed partial class PlaytimeStatsView
                 Padding = new Thickness(0, 12, 0, 12),
                 CornerRadius = new CornerRadius(6),
                 Background = isSelected ? palette.AccentBrightBrush : palette.CardBrush,
-                BorderBrush = isCurrent && !isSelected ? palette.AccentBrush : new SolidColorBrush(Colors.Transparent),
+                BorderBrush = isCurrent && !isSelected ? palette.AccentBrush : FaintWhiteBorderBrush,
                 BorderThickness = new Thickness(1),
                 Foreground = isSelected ? new SolidColorBrush(Colors.White)
                     : isCurrent ? palette.AccentBrush
@@ -259,7 +268,17 @@ public sealed partial class PlaytimeStatsView
             BorderBrush = palette.BorderBrush,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
-            Content = new FontIcon { Glyph = glyph, FontSize = 12, Foreground = palette.TextSecondaryBrush },
+            // 坑：FontIcon 直接作 Button.Content 时在宿主里不渲染（放进 StackPanel 等容器才正常），
+            // 改用显式字形字体的 TextBlock，渲染路径与已验证可见的文本内容一致
+            Content = new TextBlock
+            {
+                Text = glyph,
+                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
+                FontSize = 12,
+                Foreground = palette.TextPrimaryBrush,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            },
         };
 
     private FrameworkElement BuildCalendarFooter(StatsPalette palette, Flyout flyout, bool monthMode)
@@ -326,15 +345,16 @@ public sealed partial class PlaytimeStatsView
             if (cell.OtherMonth) border.Opacity = 0.4;
         }
 
+        // 默认半透明白边框勾出可选日期；今天用 accent 边框强调
+        border.BorderThickness = new Thickness(1);
         if (cell.Today && !cell.Selected)
         {
             border.BorderBrush = palette.AccentBrush;
-            border.BorderThickness = new Thickness(1);
             text.Foreground = palette.AccentBrush;
         }
         else
         {
-            border.BorderThickness = new Thickness(0);
+            border.BorderBrush = FaintWhiteBorderBrush;
         }
 
         if (cell.Disabled)

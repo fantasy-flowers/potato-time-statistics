@@ -130,7 +130,16 @@ public sealed partial class GameStatsView : Grid
             Background = new SolidColorBrush(Colors.Transparent),
             BorderThickness = new Thickness(0),
             CornerRadius = new CornerRadius(6),
-            Content = new FontIcon { Glyph = glyph, FontSize = 14, Foreground = palette.TextSecondaryBrush },
+            // 坑：FontIcon 直接作 Button.Content 在宿主里不渲染，用显式字形字体的 TextBlock
+            Content = new TextBlock
+            {
+                Text = glyph,
+                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
+                FontSize = 12,
+                Foreground = palette.TextPrimaryBrush,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            },
         };
 
     #endregion

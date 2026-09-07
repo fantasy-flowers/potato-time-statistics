@@ -52,6 +52,7 @@
 ### User Preferences
 <!-- 用户偏好与约定。例：- 提交信息一律使用中文 -->
 - 插件页面内容超宽（>1400）时要整体居中（对齐 HTML 原型 `.container { max-width:1400px; margin:0 auto }`），不要靠左留右侧（2026-09 用户明确要求）
+- 深色主题下可选小项（日期格/月份格等）要有半透明白边框（FaintWhiteBorderBrush #40FFFFFF）勾出范围；小图标/箭头别用 TextSecondary+小字号（深底上看不见），用 TextPrimary ≥14px（2026-09 用户要求）
 
 ### Project Facts
 <!-- 架构、依赖、外部系统、为什么这么做。例：- 编译目标 net8.0-windows，原因：宿主 PotatoVN 限定 -->
@@ -71,6 +72,7 @@
 - 踩坑：Grid 同一 cell 内多个子元素不会自动排布——BarChart X 轴标签曾全部堆在绘图区左边缘，需 `Margin.Left = slotWidth * i` 偏移到对应柱形槽位；进度条类填充宽度不要把 0-100 百分数当像素值，用 `GridLength(percent, Star)` 星列按比例（GameStatsView trackGrid 模式）
 - 踩坑：`Enumerable.Range(start, count)` 生成的是 start 起的**递增**序列——GetRecentDays 曾把 `Range(count-1, count)` 当倒序偏移 {6..0} 用，实际得到 {6..12}，近7日窗口整体前移 6 天且漏掉选中日；倒序偏移要自己算 `i - (count-1)`（2026-09 修复）
 - 踩坑：WinUI Grid 的 `Grid.SetRow` 超出已定义行数时**静默压到最后一行**（不报错）——月选择面板 12 个月按钮只定义了 3 列没定义 4 行，结果 1/4/7/10 月同格重叠成"重影"、面板塌缩成一行；用 SetRow 前必须补齐 RowDefinitions（2026-09-08 修复）
+- 踩坑（2026-09-08 实测）：FontIcon **直接作 Button.Content** 时在宿主环境不渲染（边框按钮正常、字形消失）；放进 StackPanel 等容器或改用显式 `FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets")` 的 TextBlock 都正常。日期选择器/年份导航箭头已改 TextBlock 方案
 - 踩坑：Path 画环形扇区 = 外弧(ArcSegment 顺时针) + 径向 LineSegment + 内弧(逆时针) + IsClosed；若外圈误写成直线弦、径向连接误写成弧线，扇区会变成上下两片「月牙」（DonutChart 2026-09 修复）。样式已对齐原型 ECharts 饼图：radius 48%/72%、padAngle 2° + 卡片底色描边、占比 ≥5% 外部标签带引导线
 - 踩坑：单条 ArcSegment 不允许起点=终点——360° 满圆时两点重合属退化弧，整段不渲染（100% 单扇区整环消失，2026-09 二修）；弧必须按 ≤180° 分段绘制，IsLargeArc 恒 false
 - 布局决策（2026-09 用户拍板）：日维度改为上下两张**整行**卡片——「今日游戏构成」主体固定 420 高（左半环形图 + 右半图例 ScrollViewer 滚动），「近7日趋势」主体固定 280 高（左 1.5* 完整柱形图带坐标轴 + 右 1* 摘要2×2/每日列表滚动）；根因：旧布局环形图(Star)+图例(Auto)同卡分高，53 款游戏时图例把环挤没
