@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GalgameManager.Enums;
+using GalgameManager.Models;
 using Microsoft.UI;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
@@ -156,10 +157,6 @@ public sealed partial class GameStatsView : Grid
 
         var recentDeltaText = (recent30 >= 0 ? "+" : "-") +
                               UiKit.FormatHours(Math.Abs(recent30 / 60.0)) + " " + UiKit.L("Unit_Hours", "小时");
-        var topSub = top is null
-            ? UiKit.L("Stats_NoTop", "暂无游玩记录")
-            : $"{UiKit.FormatHoursSmart(top.TotalPlayTime / 60.0)} {UiKit.L("Unit_Hours", "小时")} · " +
-              $"{top.PlayCount} {UiKit.L("Unit_Plays", "次游玩")}";
 
         var grid = UiKit.EqualColumns(new FrameworkElement[]
         {
@@ -169,12 +166,56 @@ public sealed partial class GameStatsView : Grid
             BuildStatCard(palette, UiKit.L("Stats_TotalTime", "累计游玩时长"),
                 UiKit.FormatHoursSmart(totalMinutes / 60.0), UiKit.L("Unit_Hours", "小时"),
                 UiKit.Lf("Sub_RecentDays", "近 {0} 天 {1}", 30, recentDeltaText), 24),
-            BuildStatCard(palette, UiKit.L("Stats_TopGame", "时长最长"),
-                top?.Name.Value ?? "—", null, topSub, 18, top?.Name.Value),
         });
-        grid.Margin = new Thickness(0, 20, 0, 20);
-        return grid;
+        grid.Margin = new Thickness(0, 0, 0, 20);
+
+        // 整行英雄卡（时长最长）置于其余概览卡上方
+        var hero = BuildTopGameHero(palette, top);
+        hero.Margin = new Thickness(0, 20, 0, 20);
+
+        var root = new Grid();
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.Children.Add(hero);
+        root.Children.Add(grid);
+        Grid.SetRow(grid, 1);
+        return root;
     }
+
+    /// <summary>「时长最长」整行英雄卡：左竖版封面 + 右游戏信息（无数据字段自动隐藏；无记录时显示空态）</summary>
+    private FrameworkElement BuildTopGameHero(StatsPalette palette, Galgame? top)
+    {
+        if (top is null)
+        {
+            return UiKit.HeroCard(palette,
+                UiKit.GameCover(null, string.Empty, Guid.Empty),
+                UiKit.L("Stats_TopGame", "时长最长"), string.Empty, Array.Empty<(string, string)>(),
+                UiKit.L("Stats_NoTop", "暂无游玩记录"));
+        }
+
+        var rows = new List<(string, string)>
+        {
+            (UiKit.L("Stats_TotalTime", "累计游玩时长"), UiKit.FormatTime(top.TotalPlayTime / 60.0)),
+            (UiKit.L("Stats_PlayCount", "游玩次数"), $"{top.PlayCount} {UiKit.L("Unit_Plays", "次游玩")}"),
+            (UiKit.L("Stats_Tab_Status", "游玩状态"), PlayTypeDisplayName(top.PlayType)),
+        };
+        if (!IsUnset(top.Engine.Value))
+            rows.Add((UiKit.L("Stats_Tab_Engine", "游戏引擎"), top.Engine.Value!.Trim()));
+        if (!IsUnset(top.Developer.Value))
+            rows.Add((UiKit.L("Stats_Tab_Developer", "制作公司"), top.Developer.Value!.Trim()));
+        if (_snapshot.PerGameDaily.TryGetValue(top.Uuid, out var daily) && daily.Count > 0)
+            rows.Add((UiKit.L("Stats_LastPlay", "最近游玩"), UiKit.FormatYMD(daily.Keys.Max())));
+
+        var imagePath = top.ImagePath.Value;
+        if (string.IsNullOrEmpty(imagePath) || imagePath == Galgame.DefaultImagePath) imagePath = null;
+
+        return UiKit.HeroCard(palette,
+            UiKit.GameCover(imagePath, top.Name.Value ?? string.Empty, top.Uuid),
+            UiKit.L("Stats_TopGame", "时长最长"), top.Name.Value ?? "—", rows);
+    }
+
+    private static bool IsUnset(string? s)
+        => string.IsNullOrWhiteSpace(s) || s == Galgame.DefaultString;
 
     private static FrameworkElement BuildStatCard(StatsPalette palette, string label, string value, string? unit,
         string sub, double fontSize, string? tooltip = null)

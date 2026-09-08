@@ -93,6 +93,9 @@
   "Stats_RankTitle": "总时长排行 TOP 10",
   "Stats_RankHint": "单位：小时",
   "Stats_HeatHint": "GitHub 贡献图风格 · 颜色越深当日游玩越久",
+  "Stats_PlayCount": "游玩次数",
+  "Stats_LastPlay": "最近游玩",
+  "Stat_Period": "统计周期",
 
   "Heat_NoPlay": "未游玩",
   "Heat_Less": "少",

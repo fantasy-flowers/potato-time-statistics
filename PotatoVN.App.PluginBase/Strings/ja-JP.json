@@ -93,6 +93,9 @@
   "Stats_RankTitle": "総時間ランキング TOP 10",
   "Stats_RankHint": "単位：時間",
   "Stats_HeatHint": "GitHub 風 · 色が濃いほど長くプレイ",
+  "Stats_PlayCount": "プレイ回数",
+  "Stats_LastPlay": "最終プレイ",
+  "Stat_Period": "統計期間",
 
   "Heat_NoPlay": "未プレイ",
   "Heat_Less": "少",

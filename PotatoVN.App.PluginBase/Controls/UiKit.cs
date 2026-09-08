@@ -217,6 +217,101 @@ internal static class UiKit
         return container;
     }
 
+    /// <summary>竖版封面（英雄卡用）：优先真实封面图，失败/缺省时用首字母色块占位（尺寸固定，布局不塌陷）</summary>
+    public static FrameworkElement GameCover(string? imagePath, string name, Guid id, double width = 150, double height = 209)
+    {
+        var container = new Border
+        {
+            Width = width,
+            Height = height,
+            CornerRadius = new CornerRadius(10),
+            Background = new SolidColorBrush(StatsTheme.SeriesColor(id)),
+        };
+
+        if (!string.IsNullOrWhiteSpace(imagePath))
+        {
+            try
+            {
+                var image = new Image
+                {
+                    Source = new BitmapImage(new Uri(imagePath)),
+                    Stretch = Stretch.UniformToFill,
+                    Width = width,
+                    Height = height,
+                };
+                var clip = new Border { Width = width, Height = height, CornerRadius = new CornerRadius(10), Child = image };
+                container.Background = null;
+                container.Child = clip;
+                return container;
+            }
+            catch (Exception)
+            {
+                // 图片加载失败 → 回退首字母占位
+            }
+        }
+
+        var initials = string.IsNullOrEmpty(name) ? "?" : name.Substring(0, Math.Min(2, name.Length));
+        container.Child = new TextBlock
+        {
+            Text = initials,
+            FontSize = width * 0.25,
+            FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(Colors.White),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        return container;
+    }
+
+    /// <summary>
+    /// 整行英雄卡：左竖版封面 + 右信息（小标签 + 大标题 + 键值行，无数据的行调用方自行省略）。
+    /// emptyText 非空时显示空态提示——卡片与封面占位保留，页面布局不跳动。
+    /// </summary>
+    public static Border HeroCard(StatsPalette palette, FrameworkElement cover, string label, string title,
+        IReadOnlyList<(string Label, string Value)> rows, string? emptyText = null)
+    {
+        var info = new StackPanel
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(24, 0, 0, 0),
+        };
+        info.Children.Add(Text(label, palette.TextSecondary, 12));
+        if (emptyText is not null)
+        {
+            info.Children.Add(Text(emptyText, palette.TextMuted, 15, FontWeights.SemiBold,
+                margin: new Thickness(0, 10, 0, 0)));
+        }
+        else
+        {
+            var titleText = Text(title, palette.TextPrimary, 20, FontWeights.Bold,
+                trimming: TextTrimming.CharacterEllipsis, margin: new Thickness(0, 4, 0, 12));
+            ToolTipService.SetToolTip(titleText, title);
+            info.Children.Add(titleText);
+
+            foreach (var (rowLabel, rowValue) in rows)
+            {
+                // 键值行：Grid 两列（标签定宽 + 值 Star），值超长省略（横向 StackPanel 不会触发省略）
+                var row = new Grid { Margin = new Thickness(0, 3, 0, 0) };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                row.Children.Add(Text(rowLabel, palette.TextMuted, 12));
+                var valueText = Text(rowValue, palette.TextPrimary, 12.5, trimming: TextTrimming.CharacterEllipsis);
+                ToolTipService.SetToolTip(valueText, rowValue);
+                row.Children.Add(valueText);
+                Grid.SetColumn(valueText, 1);
+                info.Children.Add(row);
+            }
+        }
+
+        var body = new Grid();
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        body.Children.Add(cover);
+        body.Children.Add(info);
+        Grid.SetColumn(info, 1);
+        return Card(palette, body, new Thickness(20));
+    }
+
     /// <summary>横向渐变刷（柱形图用）</summary>
     public static LinearGradientBrush VerticalGradient(Color top, Color bottom)
         => new()

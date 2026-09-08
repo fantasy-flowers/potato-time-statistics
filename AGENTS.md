@@ -82,9 +82,11 @@
 - 热力图卡空白根因（2026-09）：BuildMainGrid 无定高、所在行是 Star 被拉满；热力图内容固定约 135px 高且在 ScrollViewer 内顶对齐、图例钉卡底 → 中部大片空白。53列×7行纵横比固定，放大格子填高必然横向溢出。**最终方案（2026-09-07 用户两次拍板）**：年度摘要三卡（总游玩天数/最热的一天/连续游玩，GetYearDaily 在 BuildHeatmapCard 算一次共用）置于热力图上方；热力图行用 **Auto 紧贴内容** + 卡片 VerticalAlignment=Top + BuildMainGrid **不定高**——用户否决了"两卡同高定高 580"的中间方案，要求卡片按内容自然高、不要热力图上下留白。**（2026-09-08 更新）**用户随后要求热力图卡与左侧排行卡**同高**：已改为卡片默认 Stretch 填满行高、热力图行 Star（余量上下平分）、图例贴底，2026-09-07 的 Top 方案作废
 - 年份选择器居中踩坑（2026-09 已修复）：yearText 用 MinWidth=56 不设 Width，数字窄于 56 时 TextBlock 按内容收缩、TextAlignment.Center 无效；且默认垂直 Stretch 文字贴顶、相对 32px 按钮偏高 → 修法 Width=56 + VerticalAlignment=Center。年份选择器已从页面 header 移入热力图卡 header 右侧（原 hint 位置），hint 移到图例行右侧
 - 踩坑（2026-09-07）：Git Bash 下 `dotnet restore/build` 突然报 `Value cannot be null (Parameter 'path1')`（NuGet.targets _GetRestoreSettingsTask，09-04 还正常，属环境回归非仓库问题）；包未变更时 `dotnet build --no-restore` 可绕过（obj 里 assets 文件仍有效）
-- 布局决策（2026-09-08 用户要求，未实施）：游戏统计页「时长最长」卡改为**整行英雄卡**置于「库中游戏」「累计游玩时长」两卡上方；英雄卡左=竖版封面（对齐宿主 150×209、圆角 8-10）、右=信息（名称 + 时长·次数 + 可选状态/引擎/开发商/最近游玩）；概览区三卡变两卡（UiKit.EqualColumns 传 2 项即可）
+- 布局决策（2026-09-08 用户拍板，已实施）：游戏统计页「时长最长」卡与游戏时长统计页「最常玩游戏」卡均改为**整行英雄卡**（左竖版封面 150×209 圆角 10、右信息），置于其余概览卡上方；模块一「最常玩」随日/周/月时段切换，信息=名称+时长+时段占比；两页概览区各减一张卡（EqualColumns 传 2/3 项）。实现：UiKit.GameCover（封面+首字母占位，尺寸固定不塌陷）+ UiKit.HeroCard（通用英雄卡，emptyText 空态卡片保留不跳动）；月维度 Top 需自行组 GamePeriodTime（ImagePath 要过滤 DefaultImagePath）
+- 交互决策（2026-09-08 用户要求，未实施）：周/月维度排行卡**点击游戏→卡内下钻**为该游戏逐日游玩时长明细（每列一天、柱高=时长，按时长倒序/正序切换，返回排行按钮）；月维度 28-31 列 X 轴标签重叠需跳显（如 1/8/15/22/29）+tooltip 全覆盖；进入明细清除柱形筛选，切维度/日期时复位
 - DonutChart 已泛化：通用入口吃 `List<DonutDatum>{Id?,Name,Value,Icon?}`（占比按 Value），日维度 `List<GamePeriodTime>` 入口保留为包装（tooltip 传时长版，通用默认传数量版）；Id 为空的扇区不触发 SegmentClicked
 - 踩坑：WinUI 3 `Grid.SetColumn/SetRow` 第一个参数是 FrameworkElement 不是 UIElement，`grid.Children[i]`（UIElement）直接传入会 CS1503，要拿原始引用变量
+- 视觉决策（2026-09-08 用户指定）：周/月维度时间分布柱形图**选中柱用紫色渐变** #B07CE8→#6F42C1（BarChart selectedIndex 分支，原为 accent 蓝渐变；compact 迷你图/highlight 不受影响）
 
 - 本机宿主为 PotatoVN 微软商店版：数据在 `%LOCALAPPDATA%\Packages\37126GoldenPotato137.PotatoVN_8vtbc0gbd4jey\LocalState`；本地库是 **LiteDB**（pvn_data.db，非 SQLite，Galgame 以 BSON 存）；插件目录 `LocalState\Plugins`（一插件一文件夹，DLL 为 A+32hex 哈希名）；本机系统时区为 UTC+8
 - 宿主自带手动编辑游玩时长入口：游戏详情页点击"游玩时长"数字 → `EditPlayTimeDialog`，按 `yyyy/M/d` 逐日添加分钟并自动重算 TotalPlayTime（官方安全注入方式）

@@ -93,6 +93,9 @@
   "Stats_RankTitle": "Top 10 by Total Time",
   "Stats_RankHint": "Unit: hours",
   "Stats_HeatHint": "GitHub contribution style · darker means longer",
+  "Stats_PlayCount": "Play count",
+  "Stats_LastPlay": "Last played",
+  "Stat_Period": "Period",
 
   "Heat_NoPlay": "Not played",
   "Heat_Less": "Less",
