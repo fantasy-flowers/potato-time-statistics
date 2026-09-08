@@ -175,8 +175,10 @@ public sealed partial class PlaytimeStatsView
             {
                 Content = UiKit.MonthName(month + 1),
                 FontSize = 13,
-                Margin = new Thickness(3),
+                Margin = new Thickness(4),
                 Padding = new Thickness(0, 12, 0, 12),
+                // 宿主 Button 默认样式不横向拉伸，会缩成贴文字的胶囊；原型 .month-item 是铺满列宽的格子
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 CornerRadius = new CornerRadius(6),
                 Background = isSelected ? palette.AccentBrightBrush : palette.CardBrush,
                 BorderBrush = isCurrent && !isSelected ? palette.AccentBrush : FaintWhiteBorderBrush,

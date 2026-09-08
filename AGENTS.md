@@ -73,6 +73,7 @@
 - 踩坑：`Enumerable.Range(start, count)` 生成的是 start 起的**递增**序列——GetRecentDays 曾把 `Range(count-1, count)` 当倒序偏移 {6..0} 用，实际得到 {6..12}，近7日窗口整体前移 6 天且漏掉选中日；倒序偏移要自己算 `i - (count-1)`（2026-09 修复）
 - 踩坑：WinUI Grid 的 `Grid.SetRow` 超出已定义行数时**静默压到最后一行**（不报错）——月选择面板 12 个月按钮只定义了 3 列没定义 4 行，结果 1/4/7/10 月同格重叠成"重影"、面板塌缩成一行；用 SetRow 前必须补齐 RowDefinitions（2026-09-08 修复）
 - 踩坑（2026-09-08 实测）：FontIcon **直接作 Button.Content** 时在宿主环境不渲染（边框按钮正常、字形消失）；放进 StackPanel 等容器或改用显式 `FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets")` 的 TextBlock 都正常。日期选择器/年份导航箭头已改 TextBlock 方案
+- 踩坑（2026-09-08）：宿主环境里代码构建的 Button 默认**不横向拉伸**，在 Grid Star 列里会缩成贴文字的胶囊（原生 WinUI 里默认 Stretch）；需要铺满格子必须显式 `HorizontalAlignment = Stretch`（月选择格子曾因此变胶囊）
 - 踩坑：Path 画环形扇区 = 外弧(ArcSegment 顺时针) + 径向 LineSegment + 内弧(逆时针) + IsClosed；若外圈误写成直线弦、径向连接误写成弧线，扇区会变成上下两片「月牙」（DonutChart 2026-09 修复）。样式已对齐原型 ECharts 饼图：radius 48%/72%、padAngle 2° + 卡片底色描边、占比 ≥5% 外部标签带引导线
 - 踩坑：单条 ArcSegment 不允许起点=终点——360° 满圆时两点重合属退化弧，整段不渲染（100% 单扇区整环消失，2026-09 二修）；弧必须按 ≤180° 分段绘制，IsLargeArc 恒 false
 - 布局决策（2026-09 用户拍板）：日维度改为上下两张**整行**卡片——「今日游戏构成」主体固定 420 高（左半环形图 + 右半图例 ScrollViewer 滚动），「近7日趋势」主体固定 280 高（左 1.5* 完整柱形图带坐标轴 + 右 1* 摘要2×2/每日列表滚动）；根因：旧布局环形图(Star)+图例(Auto)同卡分高，53 款游戏时图例把环挤没
@@ -81,6 +82,7 @@
 - 热力图卡空白根因（2026-09）：BuildMainGrid 无定高、所在行是 Star 被拉满；热力图内容固定约 135px 高且在 ScrollViewer 内顶对齐、图例钉卡底 → 中部大片空白。53列×7行纵横比固定，放大格子填高必然横向溢出。**最终方案（2026-09-07 用户两次拍板）**：年度摘要三卡（总游玩天数/最热的一天/连续游玩，GetYearDaily 在 BuildHeatmapCard 算一次共用）置于热力图上方；热力图行用 **Auto 紧贴内容** + 卡片 VerticalAlignment=Top + BuildMainGrid **不定高**——用户否决了"两卡同高定高 580"的中间方案，要求卡片按内容自然高、不要热力图上下留白。**（2026-09-08 更新）**用户随后要求热力图卡与左侧排行卡**同高**：已改为卡片默认 Stretch 填满行高、热力图行 Star（余量上下平分）、图例贴底，2026-09-07 的 Top 方案作废
 - 年份选择器居中踩坑（2026-09 已修复）：yearText 用 MinWidth=56 不设 Width，数字窄于 56 时 TextBlock 按内容收缩、TextAlignment.Center 无效；且默认垂直 Stretch 文字贴顶、相对 32px 按钮偏高 → 修法 Width=56 + VerticalAlignment=Center。年份选择器已从页面 header 移入热力图卡 header 右侧（原 hint 位置），hint 移到图例行右侧
 - 踩坑（2026-09-07）：Git Bash 下 `dotnet restore/build` 突然报 `Value cannot be null (Parameter 'path1')`（NuGet.targets _GetRestoreSettingsTask，09-04 还正常，属环境回归非仓库问题）；包未变更时 `dotnet build --no-restore` 可绕过（obj 里 assets 文件仍有效）
+- 布局决策（2026-09-08 用户要求，未实施）：游戏统计页「时长最长」卡改为**整行英雄卡**置于「库中游戏」「累计游玩时长」两卡上方；英雄卡左=竖版封面（对齐宿主 150×209、圆角 8-10）、右=信息（名称 + 时长·次数 + 可选状态/引擎/开发商/最近游玩）；概览区三卡变两卡（UiKit.EqualColumns 传 2 项即可）
 - DonutChart 已泛化：通用入口吃 `List<DonutDatum>{Id?,Name,Value,Icon?}`（占比按 Value），日维度 `List<GamePeriodTime>` 入口保留为包装（tooltip 传时长版，通用默认传数量版）；Id 为空的扇区不触发 SegmentClicked
 - 踩坑：WinUI 3 `Grid.SetColumn/SetRow` 第一个参数是 FrameworkElement 不是 UIElement，`grid.Children[i]`（UIElement）直接传入会 CS1503，要拿原始引用变量
 
