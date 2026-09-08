@@ -159,7 +159,10 @@ internal sealed class BarChart : Grid
             Brush fill;
             if (_selectedIndex == i)
             {
-                fill = UiKit.VerticalGradient(_palette.AccentBright, _palette.AccentDark);
+                // 周/月维度柱形选中态：紫色渐变（2026-09-08 用户指定，原为 accent 蓝渐变）
+                fill = UiKit.VerticalGradient(
+                    Color.FromArgb(0xFF, 0xB0, 0x7C, 0xE8),
+                    Color.FromArgb(0xFF, 0x6F, 0x42, 0xC1));
             }
             else if (_highlightIndex == i && _highlightColor is { } hc)
             {
