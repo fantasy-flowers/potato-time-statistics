@@ -103,15 +103,14 @@ public sealed partial class GameStatsView
             Height = 16,
             VerticalAlignment = VerticalAlignment.Center,
         };
-        var fillColor = index == 0
-            ? Color.FromArgb(0xFF, 0xb8, 0x86, 0x0b)
-            : palette.AccentDark;
         var trackGrid = new Grid();
         trackGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(percent, GridUnitType.Star) });
         trackGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100 - percent, GridUnitType.Star) });
+        // 彩色时间条：按排名取模块系列色（TOP 10 互不相同），第 1 名保留金色；纵向渐变 暗→亮
+        var barColor = index == 0 ? Color.FromArgb(0xFF, 0xb8, 0x86, 0x0b) : StatsTheme.SeriesColor(index);
         trackGrid.Children.Add(new Border
         {
-            Background = UiKit.VerticalGradient(fillColor, palette.AccentBright),
+            Background = UiKit.VerticalGradient(Darken(barColor, 0.55), barColor),
             CornerRadius = new CornerRadius(4),
             Height = 16,
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -340,6 +339,13 @@ public sealed partial class GameStatsView
         Grid.SetColumn(hint, 1);
         return root;
     }
+
+    /// <summary>按比例缩小 RGB（a>1 为增亮），用于彩色条的渐变暗端</summary>
+    private static Color Darken(Color c, double f)
+        => Color.FromArgb(c.A,
+            (byte)Math.Clamp(c.R * f, 0, 255),
+            (byte)Math.Clamp(c.G * f, 0, 255),
+            (byte)Math.Clamp(c.B * f, 0, 255));
 
     private static string HeatLevelName(int level)
         => level switch
