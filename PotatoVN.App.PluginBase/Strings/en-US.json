@@ -63,6 +63,7 @@
   "Drill_SortDesc": "Desc",
   "Drill_SortAsc": "Asc",
   "Drill_Empty": "No play records for this game in this period",
+  "Drill_Zero": "0 min",
 
   "Trend_Title": "7-Day Trend",
   "Trend_Back": "Back",

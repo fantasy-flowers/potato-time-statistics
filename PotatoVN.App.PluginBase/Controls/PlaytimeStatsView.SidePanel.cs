@@ -189,9 +189,8 @@ public sealed partial class PlaytimeStatsView
     }
 
     /// <summary>
-    /// 排行卡下钻视图：单个游戏在当前周/月时段内的逐日游玩时长明细。
-    /// 每天一列（无游玩为空列），支持按时长倒序/正序重排，可返回排行列表。
-    /// 月维度天数多时跳显 X 轴标签避免重叠，完整日期与时长走悬停提示。
+    /// 排行卡下钻视图：单个游戏在当前周/月时段内的逐日游玩时长明细（列表式，每天一行：
+    /// 日期 + 时长进度条 + 时长文本，0 分钟行无条），支持按时长倒序/正序重排，可返回排行列表。
     /// </summary>
     private FrameworkElement BuildRankDrillPanel(StatsPalette palette, Guid gameId)
     {
@@ -270,7 +269,7 @@ public sealed partial class PlaytimeStatsView
         header.Children.Add(backButton);
         Grid.SetColumn(backButton, 2);
 
-        // 主体：逐日柱形明细；该游戏时段内无记录时空态（卡片不塌陷）
+        // 主体：逐日明细列表（每天一行：日期 + 时长条 + 时长文本）；无记录时空态（卡片不塌陷）
         FrameworkElement body;
         if (total <= 0)
         {
@@ -282,16 +281,20 @@ public sealed partial class PlaytimeStatsView
             var ordered = _rankDrillDesc
                 ? entries.OrderByDescending(e => e.Minutes).ThenBy(e => e.Date).ToList()
                 : entries.OrderBy(e => e.Minutes).ThenBy(e => e.Date).ToList();
+            var maxMinutes = ordered.Max(e => e.Minutes);
 
-            // 列多（月维度 28-31 列）时跳显标签，避免重叠；悬停提示覆盖所有列
-            var labelInterval = Math.Max(1, (int)Math.Ceiling(ordered.Count / 8.0));
-            var chart = new BarChart();
-            chart.SetData(
-                ordered.Select((e, i) => i % labelInterval == 0 ? UiKit.FormatMD(e.Date) : string.Empty).ToList(),
-                ordered.Select(e => e.Hours).ToList(),
-                palette,
-                ordered.Select(e => $"{UiKit.FormatDayLabel(e.Date)}\n{UiKit.FormatTime(e.Hours)}").ToList());
-            body = chart;
+            var list = new StackPanel();
+            for (var i = 0; i < ordered.Count; i++)
+            {
+                list.Children.Add(BuildDrillRow(palette, ordered[i], maxMinutes));
+            }
+
+            body = new ScrollViewer
+            {
+                Content = list,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            };
         }
 
         var root = new Grid();
@@ -301,6 +304,66 @@ public sealed partial class PlaytimeStatsView
         root.Children.Add(body);
         Grid.SetRow(body, 1);
         return WrapSideCard(palette, root);
+    }
+
+    /// <summary>
+    /// 逐日明细行：日期（M/D + 周几）+ 时长进度条 + 时长文本；0 分钟时不画条、文本紧跟日期。
+    /// 进度条填充用百分比星列实现，随轨道宽度伸缩（不要把 0-100 百分数当像素值）。
+    /// </summary>
+    private static FrameworkElement BuildDrillRow(StatsPalette palette, TrendDay day, int maxMinutes)
+    {
+        var row = new Grid();
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
+
+        var datePanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+        datePanel.Children.Add(UiKit.Text(UiKit.FormatMD(day.Date), palette.TextSecondary, 12.5));
+        datePanel.Children.Add(UiKit.Text(UiKit.WeekDayName(day.Date.DayOfWeek), palette.TextMuted, 10.5));
+        row.Children.Add(datePanel);
+
+        if (day.Minutes > 0)
+        {
+            var fillPercent = maxMinutes > 0 ? Math.Clamp(day.Minutes * 100.0 / maxMinutes, 0, 100) : 0;
+            var barTrack = new Border
+            {
+                Background = palette.BgSecondaryBrush,
+                CornerRadius = new CornerRadius(3),
+                Height = 6,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 10, 0),
+            };
+            var fillHost = new Grid();
+            fillHost.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(fillPercent, GridUnitType.Star) });
+            fillHost.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100 - fillPercent, GridUnitType.Star) });
+            fillHost.Children.Add(new Border
+            {
+                Background = palette.AccentBrush,
+                CornerRadius = new CornerRadius(3),
+                Height = 6,
+            });
+            barTrack.Child = fillHost;
+            row.Children.Add(barTrack);
+            Grid.SetColumn(barTrack, 1);
+
+            var timeText = UiKit.Text(UiKit.FormatTime(day.Hours), palette.TextPrimary, 12.5, FontWeights.Medium);
+            timeText.VerticalAlignment = VerticalAlignment.Center;
+            row.Children.Add(timeText);
+            Grid.SetColumn(timeText, 2);
+        }
+        else
+        {
+            // 0 分钟：不画条，文本紧跟日期（对齐参考样式）
+            var zeroText = UiKit.Text(UiKit.L("Drill_Zero", "0分钟"), palette.TextMuted, 12.5);
+            zeroText.VerticalAlignment = VerticalAlignment.Center;
+            row.Children.Add(zeroText);
+            Grid.SetColumn(zeroText, 1);
+        }
+
+        var container = new Border { Padding = new Thickness(0, 9, 0, 9), CornerRadius = new CornerRadius(4) };
+        UiKit.AttachHover(container, new SolidColorBrush(Colors.Transparent), palette.HoverBrush);
+        container.Child = row;
+        return container;
     }
 
     /// <summary>

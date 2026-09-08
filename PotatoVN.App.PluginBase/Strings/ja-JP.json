@@ -63,6 +63,7 @@
   "Drill_SortDesc": "降順",
   "Drill_SortAsc": "昇順",
   "Drill_Empty": "この期間にこのゲームの記録はありません",
+  "Drill_Zero": "0分",
 
   "Trend_Title": "直近7日のトレンド",
   "Trend_Back": "戻る",
