@@ -59,6 +59,10 @@
   "Rank_Filtered": "Filtered",
   "Rank_ClearFilter": "Clear",
   "Rank_Empty": "No game records in this period",
+  "Drill_Back": "Back to ranking",
+  "Drill_SortDesc": "Desc",
+  "Drill_SortAsc": "Asc",
+  "Drill_Empty": "No play records for this game in this period",
 
   "Trend_Title": "7-Day Trend",
   "Trend_Back": "Back",

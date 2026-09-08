@@ -33,6 +33,8 @@ public sealed partial class PlaytimeStatsView : Grid
     private int _selectedMonth;   // 0-11
     private int? _selectedIndex;  // 柱形图选中下标
     private Guid? _selectedGameId; // 环形图选中游戏
+    private Guid? _rankDrillGameId; // 周/月维度排行卡下钻的游戏
+    private bool _rankDrillDesc = true; // 下钻明细按游玩时长倒序
 
     // 日历面板状态
     private int _panelYear;
@@ -129,13 +131,14 @@ public sealed partial class PlaytimeStatsView : Grid
     }
 
     /// <summary>
-    /// 清除图表筛选状态：环形图选中游戏（日维度）与柱形图选中下标（周/月维度）。
-    /// 切换日期、月份或维度时都要调用，否则筛选会残留到新的时段上。
+    /// 清除图表筛选状态：环形图选中游戏（日维度）、柱形图选中下标（周/月维度）
+    /// 与排行卡下钻明细。切换日期、月份或维度时都要调用，否则筛选会残留到新的时段上。
     /// </summary>
     private void ClearChartSelection()
     {
         _selectedIndex = null;
         _selectedGameId = null;
+        _rankDrillGameId = null;
     }
 
     #endregion

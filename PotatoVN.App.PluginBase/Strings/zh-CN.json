@@ -59,6 +59,10 @@
   "Rank_Filtered": "已筛选",
   "Rank_ClearFilter": "清除筛选",
   "Rank_Empty": "该时段暂无游戏记录",
+  "Drill_Back": "返回排行",
+  "Drill_SortDesc": "倒序",
+  "Drill_SortAsc": "正序",
+  "Drill_Empty": "该游戏在该时段暂无游玩记录",
 
   "Trend_Title": "近7日游玩趋势",
   "Trend_Back": "返回总览",

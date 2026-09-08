@@ -28,6 +28,10 @@ public sealed partial class PlaytimeStatsView
 
     private FrameworkElement BuildRankPanel(StatsPalette palette)
     {
+        // 下钻状态：排行卡内容整体替换为该游戏的逐日明细（卡片位置与高度不变）
+        if (_rankDrillGameId is { } drillId)
+            return BuildRankDrillPanel(palette, drillId);
+
         List<GamePeriodTime> games;
         if (_period == StatsPeriod.Week)
         {
@@ -171,7 +175,132 @@ public sealed partial class PlaytimeStatsView
         var container = new Border { Padding = new Thickness(0, 9, 0, 9), CornerRadius = new CornerRadius(4) };
         UiKit.AttachHover(container, new SolidColorBrush(Colors.Transparent), palette.HoverBrush);
         container.Child = row;
+
+        // 点击游戏 → 卡内下钻为逐日明细；进入明细时清除柱形筛选（明细展示完整时段）
+        var gameId = game.Id;
+        container.Tapped += (_, _) =>
+        {
+            _rankDrillGameId = gameId;
+            _rankDrillDesc = true;
+            _selectedIndex = null;
+            BuildUi();
+        };
         return container;
+    }
+
+    /// <summary>
+    /// 排行卡下钻视图：单个游戏在当前周/月时段内的逐日游玩时长明细。
+    /// 每天一列（无游玩为空列），支持按时长倒序/正序重排，可返回排行列表。
+    /// 月维度天数多时跳显 X 轴标签避免重叠，完整日期与时长走悬停提示。
+    /// </summary>
+    private FrameworkElement BuildRankDrillPanel(StatsPalette palette, Guid gameId)
+    {
+        var game = _snapshot.Games.FirstOrDefault(g => g.Uuid == gameId);
+        if (game is null)
+        {
+            // 数据刷新后游戏已不在库中 → 复位回排行
+            _rankDrillGameId = null;
+            return BuildRankPanel(palette);
+        }
+
+        // 时段内全部自然日：周=当周 7 天，月=当月全部自然日
+        List<DateTime> days;
+        string rangeText;
+        if (_period == StatsPeriod.Week)
+        {
+            days = StatsService.GetWeekDays(_selectedDate);
+            rangeText = UiKit.FormatWeekRange(days[0]);
+        }
+        else
+        {
+            var year = _selectedYear;
+            var month = _selectedMonth + 1;
+            days = Enumerable.Range(1, DateTime.DaysInMonth(year, month))
+                .Select(d => new DateTime(year, month, d))
+                .ToList();
+            rangeText = UiKit.FormatYM(year, month);
+        }
+
+        _snapshot.PerGameDaily.TryGetValue(gameId, out var daily);
+        var entries = days
+            .Select(d => new TrendDay { Date = d, Minutes = daily is not null && daily.TryGetValue(d, out var v) ? v : 0 })
+            .ToList();
+        var total = entries.Sum(e => e.Minutes);
+
+        // 头部：标题（游戏名 · 时段范围）+ 倒序/正序切换 + 返回排行
+        var header = new Grid();
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var titleText = UiKit.Text($"{game.Name.Value} · {rangeText}", palette.TextPrimary, 15,
+            FontWeights.SemiBold, trimming: TextTrimming.CharacterEllipsis,
+            margin: new Thickness(0, 0, 8, 0));
+        ToolTipService.SetToolTip(titleText, $"{game.Name.Value} · {rangeText}");
+        header.Children.Add(titleText);
+
+        var sortToggle = UiKit.SortToggle(palette,
+            new[] { UiKit.L("Drill_SortDesc", "倒序"), UiKit.L("Drill_SortAsc", "正序") },
+            _rankDrillDesc ? 0 : 1,
+            index =>
+            {
+                _rankDrillDesc = index == 0;
+                BuildUi();
+            });
+        header.Children.Add(sortToggle);
+        Grid.SetColumn(sortToggle, 1);
+
+        var backButton = new Button
+        {
+            Content = UiKit.L("Drill_Back", "返回排行"),
+            FontSize = 12,
+            Background = palette.BgSecondaryBrush,
+            BorderBrush = palette.BorderBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            Foreground = palette.TextSecondaryBrush,
+            Padding = new Thickness(8, 4, 8, 4),
+            Margin = new Thickness(8, 0, 0, 0),
+        };
+        backButton.Click += (_, _) =>
+        {
+            _rankDrillGameId = null;
+            BuildUi();
+        };
+        header.Children.Add(backButton);
+        Grid.SetColumn(backButton, 2);
+
+        // 主体：逐日柱形明细；该游戏时段内无记录时空态（卡片不塌陷）
+        FrameworkElement body;
+        if (total <= 0)
+        {
+            body = UiKit.EmptyState(UiKit.L("Drill_Empty", "该游戏在该时段暂无游玩记录"), palette.TextMuted);
+        }
+        else
+        {
+            // 日期与时长成对排序；同值按日期升序保证稳定
+            var ordered = _rankDrillDesc
+                ? entries.OrderByDescending(e => e.Minutes).ThenBy(e => e.Date).ToList()
+                : entries.OrderBy(e => e.Minutes).ThenBy(e => e.Date).ToList();
+
+            // 列多（月维度 28-31 列）时跳显标签，避免重叠；悬停提示覆盖所有列
+            var labelInterval = Math.Max(1, (int)Math.Ceiling(ordered.Count / 8.0));
+            var chart = new BarChart();
+            chart.SetData(
+                ordered.Select((e, i) => i % labelInterval == 0 ? UiKit.FormatMD(e.Date) : string.Empty).ToList(),
+                ordered.Select(e => e.Hours).ToList(),
+                palette,
+                ordered.Select(e => $"{UiKit.FormatDayLabel(e.Date)}\n{UiKit.FormatTime(e.Hours)}").ToList());
+            body = chart;
+        }
+
+        var root = new Grid();
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        root.Children.Add(header);
+        root.Children.Add(body);
+        Grid.SetRow(body, 1);
+        return WrapSideCard(palette, root);
     }
 
     /// <summary>

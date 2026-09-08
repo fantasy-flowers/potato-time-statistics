@@ -59,6 +59,10 @@
   "Rank_Filtered": "絞り込み",
   "Rank_ClearFilter": "解除",
   "Rank_Empty": "この期間の記録なし",
+  "Drill_Back": "ランキングに戻る",
+  "Drill_SortDesc": "降順",
+  "Drill_SortAsc": "昇順",
+  "Drill_Empty": "この期間にこのゲームの記録はありません",
 
   "Trend_Title": "直近7日のトレンド",
   "Trend_Back": "戻る",
