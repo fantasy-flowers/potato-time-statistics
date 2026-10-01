@@ -16,6 +16,13 @@ internal sealed class StatsPalette
     public Color Card { get; init; }
     public Color Hover { get; init; }
     public Color Border { get; init; }
+
+    /// <summary>可选范围淡边框（日期/月份格默认边框）：深色为半透明白，浅色为深板岩灰半透明</summary>
+    public Color FaintBorder { get; init; }
+
+    /// <summary>选中态底色（白字前景）：深色用 AccentBright 沿用原型，浅色用 AccentDark 保证对比度达 AA</summary>
+    public Color SelectionBackground { get; init; }
+
     public Color TextPrimary { get; init; }
     public Color TextSecondary { get; init; }
     public Color TextMuted { get; init; }
@@ -46,6 +53,8 @@ internal sealed class StatsPalette
     public SolidColorBrush CardBrush => Brush(Card);
     public SolidColorBrush HoverBrush => Brush(Hover);
     public SolidColorBrush BorderBrush => Brush(Border);
+    public SolidColorBrush FaintBorderBrush => Brush(FaintBorder);
+    public SolidColorBrush SelectionBackgroundBrush => Brush(SelectionBackground);
     public SolidColorBrush TextPrimaryBrush => Brush(TextPrimary);
     public SolidColorBrush TextSecondaryBrush => Brush(TextSecondary);
     public SolidColorBrush TextMutedBrush => Brush(TextMuted);
@@ -84,6 +93,8 @@ internal static class StatsTheme
         Card = Color.FromArgb(0xFF, 0x1f, 0x2d, 0x3d),
         Hover = Color.FromArgb(0xFF, 0x2a, 0x47, 0x5e),
         Border = Color.FromArgb(0xFF, 0x3c, 0x4d, 0x5e),
+        FaintBorder = Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF),
+        SelectionBackground = Color.FromArgb(0xFF, 0x1A, 0x9F, 0xFF),
         TextPrimary = Color.FromArgb(0xFF, 0xc7, 0xd5, 0xe0),
         TextSecondary = Color.FromArgb(0xFF, 0x8f, 0x98, 0xa0),
         TextMuted = Color.FromArgb(0xFF, 0x6b, 0x7a, 0x8c),
@@ -107,6 +118,9 @@ internal static class StatsTheme
         Card = Color.FromArgb(0xFF, 0xff, 0xff, 0xff),
         Hover = Color.FromArgb(0xFF, 0xdb, 0xe7, 0xf1),
         Border = Color.FromArgb(0xFF, 0xcd, 0xd9, 0xe4),
+        // 深板岩灰 @16% alpha（0x28）：白色卡片上清晰但不喧宾夺主；更弱 0x1E，更强 0x38（可调）
+        FaintBorder = Color.FromArgb(0x28, 0x1F, 0x2D, 0x3D),
+        SelectionBackground = Color.FromArgb(0xFF, 0x0D, 0x6F, 0xB8),
         TextPrimary = Color.FromArgb(0xFF, 0x1f, 0x2d, 0x3d),
         TextSecondary = Color.FromArgb(0xFF, 0x54, 0x68, 0x7a),
         TextMuted = Color.FromArgb(0xFF, 0x82, 0x91, 0xa0),

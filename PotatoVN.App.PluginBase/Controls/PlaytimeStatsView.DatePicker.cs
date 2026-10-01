@@ -20,10 +20,6 @@ namespace PotatoVN.App.PluginBase.Controls;
 /// </summary>
 public sealed partial class PlaytimeStatsView
 {
-    /// <summary>日期/月份选择项的半透明白边框（深底上勾出可选范围）</summary>
-    private static readonly SolidColorBrush FaintWhiteBorderBrush =
-        new(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF));
-
     #region 日期选择器
 
     private FrameworkElement BuildDatePickerButton(StatsPalette palette)
@@ -114,7 +110,7 @@ public sealed partial class PlaytimeStatsView
                 Width = 34,
                 Height = 34,
                 CornerRadius = new CornerRadius(4),
-                BorderBrush = FaintWhiteBorderBrush,
+                BorderBrush = palette.FaintBorderBrush,
                 BorderThickness = new Thickness(1),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Top,
@@ -180,8 +176,8 @@ public sealed partial class PlaytimeStatsView
                 // 宿主 Button 默认样式不横向拉伸，会缩成贴文字的胶囊；原型 .month-item 是铺满列宽的格子
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 CornerRadius = new CornerRadius(6),
-                Background = isSelected ? palette.AccentBrightBrush : palette.CardBrush,
-                BorderBrush = isCurrent && !isSelected ? palette.AccentBrush : FaintWhiteBorderBrush,
+                Background = isSelected ? palette.SelectionBackgroundBrush : palette.CardBrush,
+                BorderBrush = isCurrent && !isSelected ? palette.AccentBrush : palette.FaintBorderBrush,
                 BorderThickness = new Thickness(1),
                 Foreground = isSelected ? new SolidColorBrush(Colors.White)
                     : isCurrent ? palette.AccentBrush
@@ -323,7 +319,7 @@ public sealed partial class PlaytimeStatsView
 
         if (cell.Selected)
         {
-            border.Background = palette.AccentBrightBrush;
+            border.Background = palette.SelectionBackgroundBrush;
             text.Foreground = new SolidColorBrush(Colors.White);
             text.FontWeight = FontWeights.SemiBold;
         }
@@ -347,7 +343,7 @@ public sealed partial class PlaytimeStatsView
             if (cell.OtherMonth) border.Opacity = 0.4;
         }
 
-        // 默认半透明白边框勾出可选日期；今天用 accent 边框强调
+        // 默认淡边框勾出可选日期（色板驱动：深色半透明白 / 浅色深板岩灰）；今天用 accent 边框强调
         border.BorderThickness = new Thickness(1);
         if (cell.Today && !cell.Selected)
         {
@@ -356,7 +352,7 @@ public sealed partial class PlaytimeStatsView
         }
         else
         {
-            border.BorderBrush = FaintWhiteBorderBrush;
+            border.BorderBrush = palette.FaintBorderBrush;
         }
 
         if (cell.Disabled)

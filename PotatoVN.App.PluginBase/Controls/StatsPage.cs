@@ -20,6 +20,14 @@ public sealed class StatsPage : Page
     private Button? _statsButton;
     private Border? _moduleSwitchBorder;
 
+    // 上一次挂载共享视图的容器：确定性摘除用（不依赖 element.Parent）
+    private StackPanel? _body;
+    // BuildPage 重入护栏：ActualThemeChanged 可能在挂载共享视图的中途重入
+    // （宿主应用主题的时机不定），嵌套重建会撞上"半挂载"中间态导致摘除失败、
+    // 再次 Add 抛 COMException 0x800F1000（浅色下点开统计页必现闪退的根因，2026-09 修复）
+    private bool _buildingPage;
+    private bool _rebuildPageQueued;
+
     public StatsPage() : this(Plugin.CurrentData)
     {
     }
@@ -41,6 +49,35 @@ public sealed class StatsPage : Page
 
     private void BuildPage()
     {
+        // 重入护栏：ActualThemeChanged 可能在 BuildPage 挂载共享视图的中途再次触发
+        // （宿主应用主题时机不定，浅色下 Default→Light 事件会落在 Children.Add 窗口内）。
+        // 直接嵌套重建会让 DetachFromParent 撞上"半挂载"中间态（element.Parent 不可靠）、
+        // 摘除失效，随后再次 Add 抛 COMException 0x800F1000。改为排队，构建完成后再重建。
+        if (_buildingPage)
+        {
+            _rebuildPageQueued = true;
+            return;
+        }
+
+        _buildingPage = true;
+        try
+        {
+            BuildPageCore();
+        }
+        finally
+        {
+            _buildingPage = false;
+        }
+
+        if (_rebuildPageQueued)
+        {
+            _rebuildPageQueued = false;
+            BuildPage();
+        }
+    }
+
+    private void BuildPageCore()
+    {
         var palette = StatsTheme.For(this);
         Content = null;
 
@@ -58,8 +95,9 @@ public sealed class StatsPage : Page
         body.Children.Add(topBar);
         // 共享视图重新挂载前必须先从旧父级移除，否则抛 COMException 0x800F1000
         // （Element is already the child of another element）
-        DetachFromParent(_playtimeView);
-        DetachFromParent(_gameStatsView);
+        DetachSharedView(_playtimeView);
+        DetachSharedView(_gameStatsView);
+        _body = body;
         body.Children.Add(_playtimeView);
         _playtimeView.Margin = new Thickness(0, 20, 0, 0);
         body.Children.Add(_gameStatsView);
@@ -116,6 +154,22 @@ public sealed class StatsPage : Page
                 contentControl.Content = null;
                 break;
         }
+    }
+
+    /// <summary>
+    /// 确定性摘除共享视图：直接从记录的上一任 body 移除，不依赖 element.Parent——
+    /// 事件重入/主题切换的中间态下 Parent 可能为 null 或指向新容器，摘除会失效；
+    /// 不在 _body 里时兜底走通用 Parent 摘除（应对被挂到其他容器的历史情况）。
+    /// </summary>
+    private void DetachSharedView(FrameworkElement element)
+    {
+        if (_body is not null && _body.Children.Contains(element))
+        {
+            _body.Children.Remove(element);
+            return;
+        }
+
+        DetachFromParent(element);
     }
 
     private FrameworkElement BuildModuleSwitch(StatsPalette palette)

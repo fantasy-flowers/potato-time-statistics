@@ -138,6 +138,20 @@ StampedFiles = stampedFiles.ToArray();
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <!--
+      artifacts\plugin.pvnplugin\ 是上一轮构建产出的插件包副本（其中 XAML 已被打戳）。
+      它位于项目根目录下，会被 SDK 的 **/*.xaml 通配再次收集为 Page，
+      导致命名空间二次打戳（WMC0001 Unknown type / WMC9999）。打包产物不是本项目的源码，显式排除。
+    -->
+    <Page Remove="artifacts\**" />
+    <Compile Remove="artifacts\**" />
+    <Content Remove="artifacts\**" />
+    <None Remove="artifacts\**" />
+    <EmbeddedResource Remove="artifacts\**" />
+    <PRIResource Remove="artifacts\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="Strings\en-US.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

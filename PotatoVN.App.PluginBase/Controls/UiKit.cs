@@ -432,14 +432,14 @@ internal static class UiKit
 
     private static void StylePillButton(Button button, StatsPalette palette, bool active)
     {
-        button.Background = active ? palette.AccentBrightBrush : new SolidColorBrush(Colors.Transparent);
+        button.Background = active ? palette.SelectionBackgroundBrush : new SolidColorBrush(Colors.Transparent);
         button.Foreground = active ? new SolidColorBrush(Colors.White) : palette.TextSecondaryBrush;
     }
 
     private static void StyleSmallButton(Button button, StatsPalette palette, bool active)
     {
-        button.Background = active ? palette.AccentBrightBrush : palette.BgSecondaryBrush;
-        button.BorderBrush = active ? palette.AccentBrightBrush : palette.BorderBrush;
+        button.Background = active ? palette.SelectionBackgroundBrush : palette.BgSecondaryBrush;
+        button.BorderBrush = active ? palette.SelectionBackgroundBrush : palette.BorderBrush;
         button.Foreground = active ? new SolidColorBrush(Colors.White) : palette.TextSecondaryBrush;
     }
 

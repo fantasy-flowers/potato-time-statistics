@@ -384,6 +384,7 @@ FodyWeavers.xsd
 # VS Code files for those working on multiple tools
 .vscode/
 *.code-workspace
+.dsh-acl-reports/
 
 # Local History for Visual Studio Code
 .history/
